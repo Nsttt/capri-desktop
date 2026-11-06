@@ -5,7 +5,7 @@ import { app } from 'electron';
 const DEFAULTS = {
   scale: 0.6,        // sprite scale, 0.6 ≈ 250px tall
   muted: false,
-  volume: 0.7,
+  volume: 0.75,      // her own sounds, one of VOLUME_LEVELS (tray > Sound)
   lang: 'auto',      // 'auto' follows the system language, or 'fr' / 'en'
   displayId: null,   // null = primary display
   wander: true,      // random teleports when idle
@@ -40,6 +40,15 @@ const DEFAULTS = {
   lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
 };
 
+// the volumes her Sound menu offers for her own sounds (the master gain, 0 to 1)
+const VOLUME_LEVELS = [0.1, 0.25, 0.5, 0.75, 1];
+
+// the offered level closest to a saved volume (a hand-edited config.json can hold anything)
+function nearestVolume(volume) {
+  const v = Number.isFinite(volume) ? volume : DEFAULTS.volume;
+  return VOLUME_LEVELS.reduce((best, level) => (Math.abs(level - v) < Math.abs(best - v) ? level : best));
+}
+
 let cache = null;
 
 function file() {
@@ -67,4 +76,4 @@ function save(patch) {
   return cache;
 }
 
-export { load, save, file, DEFAULTS };
+export { load, save, file, DEFAULTS, VOLUME_LEVELS, nearestVolume };

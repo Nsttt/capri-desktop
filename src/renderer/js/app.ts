@@ -622,7 +622,10 @@ async function boot() {
   });
 
   host.onConfig((cfg) => {
+    const before = { volume: voice.volume, muted: voice.muted };
     voice.configure(cfg);
+    // a new level (her Sound menu, her chat), or her sound back on: you hear it
+    if (!voice.muted && (voice.volume !== before.volume || before.muted)) voice.play('tick');
     jealousy.enabled = cfg.jealous !== false;
     jealousy.closePages = cfg.closePages !== false;
     followOn = cfg.follow !== false;

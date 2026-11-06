@@ -15,6 +15,7 @@ export class Voice {
   declare master: GainNode;
   declare muted: boolean;
   declare volume: number;
+  declare levels: number[];
   declare custom: Map<any, any>;
   declare lastBlip: number;
   declare noise: AudioBuffer;
@@ -23,7 +24,8 @@ export class Voice {
     this.ctx = null;
     this.master = null;
     this.muted = false;
-    this.volume = 0.7;
+    this.volume = 0.75;
+    this.levels = []; // her Sound menu's levels (config.js VOLUME_LEVELS), with her config
     this.custom = new Map(); // cue -> AudioBuffer
     this.lastBlip = 0;
   }
@@ -47,11 +49,12 @@ export class Voice {
     return ctx;
   }
 
-  configure({ muted, volume }) {
+  configure({ muted, volume, volumeLevels }: { muted?: boolean; volume?: number; volumeLevels?: number[] }) {
+    if (Array.isArray(volumeLevels)) this.levels = volumeLevels;
     if (typeof muted === 'boolean') this.muted = muted;
-    if (typeof volume === 'number') {
-      this.volume = volume;
-      if (this.master) this.master.gain.value = volume;
+    if (typeof volume === 'number' && Number.isFinite(volume)) {
+      this.volume = Math.min(1, Math.max(0, volume));
+      if (this.master) this.master.gain.value = this.volume;
     }
   }
 

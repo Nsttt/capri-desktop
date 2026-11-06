@@ -6,6 +6,7 @@ import { app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, 
 import { randomUUID } from 'node:crypto';
 
 import * as config from './config';
+import { VOLUME_LEVELS, nearestVolume } from './config';
 import { TRAY, TRAY_MAC, LANGS } from './labels';
 import { WIN, MAC, TRACKS_WINDOWS, fixPath, canCaptureScreen } from './platform';
 import type { TrayLabels } from './labels';
@@ -283,7 +284,7 @@ function resolveLang(setting) {
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
   const { apiKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
-  return { ...cfg, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang, floorGap: overlayArea().gap };
+  return { ...cfg, volumeLevels: VOLUME_LEVELS, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang, floorGap: overlayArea().gap };
 }
 
 function updateConfig(patch) {
@@ -320,6 +321,7 @@ function rebuildTray() {
     const sameDay = d.toDateString() === new Date().toDateString();
     return new Intl.DateTimeFormat(resolveLang(cfg.lang), sameDay ? { hour: '2-digit', minute: '2-digit' } : { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(d);
   };
+  const percent = (v) => new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 0 }).format(v);
   const cancelReminder = (id) => updateConfig({ reminders: (config.load().reminders || []).filter((r) => r.id !== id) });
 
   const menu = Menu.buildFromTemplate(<Electron.MenuItemConstructorOptions[]>[
@@ -355,6 +357,16 @@ function rebuildTray() {
       label: t.sound,
       submenu: [
         { label: t.mute, type: 'checkbox', checked: cfg.muted, click: (item) => updateConfig({ muted: item.checked }) },
+        { type: 'separator' },
+        // how loud her own sounds are (not your PC's): picking a level turns her sound back on
+        // (set in her chat, it can be one in between: the heading says which)
+        { label: `${t.volume} · ${percent(cfg.volume)}`, enabled: false },
+        ...VOLUME_LEVELS.map((volume) => ({
+          label: percent(volume),
+          type: 'radio',
+          checked: volume === nearestVolume(cfg.volume),
+          click: () => updateConfig({ volume, muted: false }),
+        })),
         { type: 'separator' },
         {
           label: t.soundsDir,
