@@ -309,6 +309,18 @@ système. Tu peux en choisir une autre dans son menu.
 Son menu : **clic droit sur elle**. Il est aussi sur son icône, que Windows 11 cache souvent derrière le **^** à côté
 de l'horloge.
 
+### Mises à jour
+
+Installée, Capri se tient à jour toute seule. Peu après son démarrage, puis toutes les 4 heures, elle regarde la dernière
+release GitHub et télécharge la nouvelle version en arrière-plan. Quand elle est prête, elle te le dit. Choisis
+**Redémarrer pour passer à…** dans son menu pour l'installer tout de suite, ou laisse faire : elle s'installe la
+prochaine fois qu'elle quitte. Le sous-menu **Mises à jour** montre sa version et propose **Vérifier les mises à jour**.
+Pour arrêter les vérifications automatiques, décoche **Mettre à jour automatiquement** au même endroit.
+
+Sur Mac elle remplace sa propre app : il faut donc qu'elle vive dans un dossier où elle peut écrire, comme Applications.
+Sinon elle te le dit et te donne le lien de la release. Elle est signée ad hoc, donc macOS peut redemander
+l'autorisation d'enregistrement de l'écran après une mise à jour.
+
 ### C'est quoi Claude Code ? Il le faut ?
 
 [Claude Code](https://code.claude.com/docs/en/quickstart) est l'assistant de code d'Anthropic : dans un terminal, dans
@@ -330,7 +342,8 @@ npm start
 ```
 
 Elle est écrite en TypeScript : `npm start` la compile d'abord dans `out/`. `npm run typecheck` vérifie les types, et
-sur Mac `npm run dist:mac` construit `dist/mac-arm64/Capri.app` (signée ad hoc, pour ta propre machine).
+sur Mac `npm run dist:mac` construit `dist/mac-arm64/Capri.app` (signée ad hoc, pour ta propre machine), plus les zips
+Apple silicon et Intel dont sont faites ses mises à jour.
 
 Garde ce terminal ouvert tant qu'elle tourne. Les tours avec les fenêtres (s'asseoir dessus, les posséder, la jalousie,
 t'afficher la réponse de Claude quand tu es ailleurs) ne marchent que sous Windows, et son menu ne propose que ce qui
@@ -560,6 +573,16 @@ Pour bosser dessus : `npm run dev` active des routes de debug sur le bridge (`/d
 factice sur la fenêtre de Capri, sans toucher au vrai, `/debug/type` écrit dans son chat, `/debug/menu` liste son menu
 et peut cliquer sur un de ses éléments).
 `npm run dist` fabrique l'installeur Windows dans `dist/`.
+
+Les versions sont publiées par [release-please](https://github.com/googleapis/release-please). Fusionne les pull
+requests dans `main` avec des titres Conventional Commits (`feat: …`, `fix: …`). release-please garde une PR de release
+ouverte qui monte `version` dans `package.json` et écrit `CHANGELOG.md`. La fusionner crée le tag `vX.Y.Z` et une
+release en brouillon. `.github/workflows/release.yml` construit alors Windows et macOS, y attache ce que lit son
+updater (`latest.yml`, `latest-mac.yml`, l'installeur, les zips) et publie la release, que les copies installées
+récupèrent. Le dépôt doit avoir *Settings › Actions › General › Allow GitHub Actions to create and approve pull
+requests* activé. Le flux vient du dépôt indiqué dans `package.json` › `build.publish`. Pour essayer une mise à jour sans rien publier : construis deux versions, sers le dossier `dist/` de la
+plus récente en HTTP, et lance l'ancienne app packagée avec `CAPRI_UPDATE_FEED=http://127.0.0.1:<port>/`.
+`CAPRI_DISABLE_AUTO_UPDATE=1` coupe les mises à jour.
 
 ## Crédits et droits
 

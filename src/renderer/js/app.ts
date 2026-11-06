@@ -772,6 +772,10 @@ async function boot() {
         if (cmd.ok) panel.say({ kind: 'info', line: cmd.action === 'install' ? t.hooksOk : t.hooksRemoved, hold: 6000 });
         else panel.say({ kind: 'error', line: fmt(t.hooksFail, { error: cmd.error }), hold: 9000 });
         break;
+      case 'update': // a new version of her (updater.ts), or what "Check for updates" found
+        if (cmd.status === 'error') panel.say({ kind: 'error', line: fmt(t.update.fail, cmd), hold: 9000 });
+        else if (t.update[cmd.status]) panel.say({ kind: 'info', line: fmt(t.update[cmd.status], cmd), hold: cmd.status === 'latest' ? 5000 : 12000 });
+        break;
       // --dev helpers
       case 'intro': // her intro again, as when she starts (still: as with Windows' animations off)
         panel.hide();

@@ -38,6 +38,8 @@ const DEFAULTS = {
   pcReact: true,     // she reacts to your PC: the processor at full tilt, the battery, the network, a USB stick, a game (pc.js)
   watchScreen: false, // she looks at your screen now and then and says something about it (look.js)
   lookAsked: false,  // she told you what looking means (where the picture goes) and you said yes
+  autoUpdate: true,  // she looks for a new version now and then and downloads it (updater.ts)
+  updateAnnounced: null, // the last new version she told you about, so she says it once
 };
 
 // the volumes her Sound menu offers for her own sounds (the master gain, 0 to 1)
