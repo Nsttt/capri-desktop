@@ -23,7 +23,7 @@ export class Voice {
     this.ctx = null;
     this.master = null;
     this.muted = false;
-    this.volume = 0.7;
+    this.volume = 0.75;
     this.custom = new Map(); // cue -> AudioBuffer
     this.lastBlip = 0;
   }
@@ -49,9 +49,9 @@ export class Voice {
 
   configure({ muted, volume }) {
     if (typeof muted === 'boolean') this.muted = muted;
-    if (typeof volume === 'number') {
-      this.volume = volume;
-      if (this.master) this.master.gain.value = volume;
+    if (typeof volume === 'number' && Number.isFinite(volume)) {
+      this.volume = Math.min(1, Math.max(0, volume));
+      if (this.master) this.master.gain.value = this.volume;
     }
   }
 

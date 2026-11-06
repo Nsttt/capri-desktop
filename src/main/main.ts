@@ -6,6 +6,7 @@ import { app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, 
 import { randomUUID } from 'node:crypto';
 
 import * as config from './config';
+import { VOLUME_LEVELS, nearestVolume } from './config';
 import { TRAY, TRAY_MAC, LANGS } from './labels';
 import { WIN, MAC, TRACKS_WINDOWS, fixPath, canCaptureScreen } from './platform';
 import type { TrayLabels } from './labels';
@@ -355,6 +356,15 @@ function rebuildTray() {
       label: t.sound,
       submenu: [
         { label: t.mute, type: 'checkbox', checked: cfg.muted, click: (item) => updateConfig({ muted: item.checked }) },
+        { type: 'separator' },
+        // how loud her own sounds are (not your PC's): picking a level turns her sound back on
+        { label: t.volume, enabled: false },
+        ...VOLUME_LEVELS.map((volume) => ({
+          label: new Intl.NumberFormat(lang, { style: 'percent' }).format(volume),
+          type: 'radio',
+          checked: volume === nearestVolume(cfg.volume),
+          click: () => updateConfig({ volume, muted: false }),
+        })),
         { type: 'separator' },
         {
           label: t.soundsDir,

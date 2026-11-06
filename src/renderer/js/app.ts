@@ -622,7 +622,9 @@ async function boot() {
   });
 
   host.onConfig((cfg) => {
+    const before = voice.volume;
     voice.configure(cfg);
+    if (voice.volume !== before) voice.play('tick'); // a new level from her Sound menu: you hear it
     jealousy.enabled = cfg.jealous !== false;
     jealousy.closePages = cfg.closePages !== false;
     followOn = cfg.follow !== false;
