@@ -1,0 +1,97 @@
+# Releases with release-please. Every push to main updates a release PR (the version bump in
+# package.json and CHANGELOG.md, from the Conventional Commit titles merged since the last release).
+# Merging that PR tags vX.Y.Z and makes a draft release; this workflow then builds Capri for Windows and
+# macOS, attaches what her updater reads (updater.ts): latest.yml + the installer and its blockmap,
+# latest-mac.yml + one zip per Mac arch, and only then publishes the release. Installed copies look at
+# the latest published release every few hours, so they never see one without its update files.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.created == 'true' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist
+          - os: macos-latest
+            script: dist:mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: The tag matches package.json
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$version" != "${{ needs.release-please.outputs.version }}" ]; then
+            echo "::error::release ${{ needs.release-please.outputs.version }} but package.json says $version"
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm test
+      # never published by electron-builder: the publish job attaches both builds at once
+      - run: npm run ${{ matrix.script }} -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.blockmap
+            dist/latest*.yml
+
+  publish:
+    needs: [release-please, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Attach the builds, then publish the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag }}
+        run: |
+          ls -l release
+          test -f release/latest.yml && test -f release/latest-mac.yml
+          gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
