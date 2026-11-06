@@ -392,6 +392,13 @@ export const LINES = {
     hooksOk: 'Hooks installés. Relance Claude Code et je verrai tout.',
     hooksRemoved: 'Hooks retirés. Je ne vois plus Claude.',
     hooksFail: 'Impossible de toucher aux hooks : {error}',
+    // une nouvelle version d'elle (updater.ts)
+    update: {
+      ready: 'La version {version} est téléchargée. Je l’installe quand je quitte, ou clic droit sur moi › « Redémarrer pour passer à {version} » pour le faire tout de suite.',
+      latest: 'Je suis à jour : version {version}.',
+      manual: 'La version {version} est sortie, mais je ne peux pas me mettre à jour depuis ce dossier. Range-moi dans Applications, ou récupère-la : clic droit sur moi › Mises à jour.',
+      fail: 'Impossible de vérifier les mises à jour : {error}',
+    },
     verbs: {
       Read: 'Lit', Write: 'Écrit', Edit: 'Modifie', MultiEdit: 'Modifie', NotebookEdit: 'Modifie',
       Bash: 'Exécute', PowerShell: 'Exécute', Grep: 'Cherche', Glob: 'Fouille', WebFetch: 'Consulte',
@@ -773,6 +780,13 @@ export const LINES = {
     hooksOk: 'Hooks installed. Restart Claude Code and I’ll see everything.',
     hooksRemoved: 'Hooks removed. I can’t see Claude anymore.',
     hooksFail: 'Couldn’t change the hooks: {error}',
+    // a new version of her (updater.ts)
+    update: {
+      ready: 'Version {version} is downloaded. I’ll put it in when I quit, or right-click me › “Restart to update to {version}” to do it now.',
+      latest: 'I’m up to date: version {version}.',
+      manual: 'Version {version} is out, but I can’t update myself from this folder. Move me to Applications, or get it yourself: right-click me › Updates.',
+      fail: 'Couldn’t check for updates: {error}',
+    },
     verbs: {
       Read: 'Reads', Write: 'Writes', Edit: 'Edits', MultiEdit: 'Edits', NotebookEdit: 'Edits',
       Bash: 'Runs', PowerShell: 'Runs', Grep: 'Greps', Glob: 'Scans', WebFetch: 'Fetches',
@@ -1150,6 +1164,13 @@ export const LINES = {
     hooksOk: 'Hooks instalados. Reinicia Claude Code y lo veré todo.',
     hooksRemoved: 'Hooks quitados. Ya no veo a Claude.',
     hooksFail: 'No pude tocar los hooks: {error}',
+    // una versión nueva de ella (updater.ts)
+    update: {
+      ready: 'La versión {version} ya está descargada. La instalo cuando me cierres, o clic derecho sobre mí › «Reiniciar para actualizar a {version}» para hacerlo ya.',
+      latest: 'Estoy al día: versión {version}.',
+      manual: 'Salió la versión {version}, pero no puedo actualizarme desde esta carpeta. Muéveme a Aplicaciones, o descárgala tú: clic derecho sobre mí › Actualizaciones.',
+      fail: 'No pude buscar actualizaciones: {error}',
+    },
     verbs: {
       Read: 'Lee', Write: 'Escribe', Edit: 'Edita', MultiEdit: 'Edita', NotebookEdit: 'Edita',
       Bash: 'Ejecuta', PowerShell: 'Ejecuta', Grep: 'Busca', Glob: 'Explora', WebFetch: 'Consulta',
@@ -1529,6 +1550,13 @@ export const LINES = {
     hooksOk: 'Hooks instalados. Reinicie o Claude Code e eu vou ver tudo.',
     hooksRemoved: 'Hooks removidos. Não vejo mais o Claude.',
     hooksFail: 'Não consegui mexer nos hooks: {error}',
+    // uma versão nova dela (updater.ts)
+    update: {
+      ready: 'A versão {version} já foi baixada. Eu instalo quando você me fechar, ou clique direito em mim › “Reiniciar para atualizar para {version}” para fazer agora.',
+      latest: 'Estou em dia: versão {version}.',
+      manual: 'Saiu a versão {version}, mas não consigo me atualizar desta pasta. Me mova para Aplicativos, ou baixe você mesmo: clique direito em mim › Atualizações.',
+      fail: 'Não consegui procurar atualizações: {error}',
+    },
     verbs: {
       Read: 'Lê', Write: 'Escreve', Edit: 'Edita', MultiEdit: 'Edita', NotebookEdit: 'Edita',
       Bash: 'Roda', PowerShell: 'Roda', Grep: 'Procura', Glob: 'Vasculha', WebFetch: 'Consulta',
@@ -1913,6 +1941,13 @@ export const LINES = {
     hooksOk: 'Хуки установлены. Перезапусти Claude Code, и я всё увижу.',
     hooksRemoved: 'Хуки удалены. Я больше не вижу Claude.',
     hooksFail: 'Не удалось изменить хуки: {error}',
+    // её новая версия (updater.ts)
+    update: {
+      ready: 'Версия {version} загружена. Поставлю её, когда закроешь меня, или правый клик по мне › «Перезапустить и обновить до {version}», чтобы сейчас.',
+      latest: 'У меня последняя версия: {version}.',
+      manual: 'Вышла версия {version}, но из этой папки я обновиться не могу. Перенеси меня в «Программы» или скачай её сам: правый клик по мне › Обновления.',
+      fail: 'Не удалось проверить обновления: {error}',
+    },
     verbs: {
       Read: 'Читает', Write: 'Пишет', Edit: 'Правит', MultiEdit: 'Правит', NotebookEdit: 'Правит',
       Bash: 'Запускает', PowerShell: 'Запускает', Grep: 'Ищет', Glob: 'Перебирает', WebFetch: 'Загружает',

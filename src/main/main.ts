@@ -19,6 +19,8 @@ import * as apps from './apps';
 import * as system from './system';
 import * as launch from './launch';
 import * as files from './files';
+import { createUpdater } from './updater';
+import type { UpdateState } from './updater';
 import { ASSISTANTS, assistant } from './assistants';
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
@@ -41,6 +43,7 @@ let tray = null;
 let trayMenu = null; // also what she opens when you right-click her
 let demoTimer = null;
 let windowWatch = null;
+let updater: ReturnType<typeof createUpdater> = null;
 // the watcher only speaks when something changes: the overlay asks for this when it (re)loads
 let lastWindows = null;
 let chatModels = null; // the provider's models, as last seen (null: not reached)
@@ -509,6 +512,7 @@ function rebuildTray() {
       checked: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
     }] : []),
+    updateMenu(t, cfg),
     // her hooks, while she watches Claude Code
     ...(cfg.claude ? [
       { type: 'separator' },
@@ -518,10 +522,66 @@ function rebuildTray() {
       ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
     ] : []),
     { type: 'separator' },
+    ...(updater?.state().status === 'ready' ? [{ label: t.updateRestart((updater.state() as { version: string }).version), click: () => updater.install() }] : []),
     { label: t.quit, click: () => app.quit() },
   ]);
   tray.setContextMenu(menu);
   trayMenu = menu;
+}
+
+// Her updates (updater.ts) in her menu, and a word from her when there's news: a new version ready
+// or one she can't put in herself (once each), or what "Check for updates" found.
+function onUpdate(state: UpdateState, manual: boolean) {
+  rebuildTray();
+  if (!manual) return;
+  const news = state.status === 'ready' || state.status === 'manual';
+  if (news && config.load().updateAnnounced === state.version && !updateAsked) return;
+  if (news) config.save({ updateAnnounced: state.version });
+  updateAsked = false;
+  sendCommand('update', state);
+}
+let updateAsked = false; // "Check for updates" was clicked: she answers even if she said it before
+
+function updateMenu(t: TrayLabels, cfg) {
+  const state = updater?.state() ?? { status: 'off', reason: '' };
+  const line = (() => {
+    switch (state.status) {
+      case 'off': return t.updateOff;
+      case 'checking': return t.updateChecking;
+      case 'latest': return t.updateLatest;
+      case 'downloading': return t.updateDownloading(state.version, state.percent);
+      case 'error': return t.updateError;
+      default: return null;
+    }
+  })();
+  return {
+    label: t.updates,
+    submenu: [
+      { label: t.version(app.getVersion()), enabled: false },
+      ...(line ? [{ label: line, enabled: false }] : []),
+      ...(state.status === 'off' ? [] : [
+        { type: 'separator' },
+        state.status === 'ready'
+          ? { label: t.updateRestart(state.version), click: () => updater.install() }
+          : state.status === 'manual'
+            ? { label: t.updateGet(state.version), click: () => shell.openExternal(state.page) }
+            : {
+              label: t.updateCheck, enabled: !['checking', 'downloading'].includes(state.status),
+              click: () => {
+                updateAsked = true;
+                updater.check();
+              },
+            },
+        {
+          label: t.updateAuto, type: 'checkbox', checked: cfg.autoUpdate !== false,
+          click: (item) => {
+            updateConfig({ autoUpdate: item.checked });
+            updater.schedule(0);
+          },
+        },
+      ]),
+    ],
+  };
 }
 
 // Run from a clone (`npm start`), electron.exe alone would open the default Electron app at login:
@@ -1075,6 +1135,9 @@ function main() {
     registerIpc();
     createOverlay();
     createTray();
+    updater = createUpdater({ auto: () => config.load().autoUpdate !== false, onChange: onUpdate });
+    updater.schedule();
+    rebuildTray(); // her Updates submenu, now that there's an updater
     windowWatch = startWindowWatch({
       overlay,
       onUpdate: (data) => {
@@ -1110,6 +1173,7 @@ function main() {
   });
 
   app.on('will-quit', () => {
+    updater?.onQuit(); // an update downloaded: put in once she's gone
     globalShortcut.unregisterAll();
     windowWatch?.stop();
   });

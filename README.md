@@ -292,6 +292,17 @@ own. You can choose another one in her menu.
 
 Her menu: **right-click her**. It's also on her tray icon, which Windows 11 often hides behind the **^** next to the clock.
 
+### Updates
+
+An installed Capri keeps herself up to date. A little after she starts, and then every 4 hours, she checks the latest
+GitHub release and downloads a new version in the background. When it's ready she tells you. Pick **Restart to update**
+in her menu to install it now, or leave it and it goes in the next time she quits. Her menu's **Updates** submenu
+shows her version and has **Check for updates**. To stop the automatic checks, untick **Update automatically** there.
+
+On a Mac she replaces her own app, so she has to live somewhere she can write to, like your Applications folder. If
+she can't, she says so and links the release instead. Her build is signed ad hoc, so macOS may ask for the Screen
+Recording permission again after an update.
+
 ### What's Claude Code? Do I need it?
 
 [Claude Code](https://code.claude.com/docs/en/quickstart) is Anthropic's coding assistant: in a terminal, in VS Code,
@@ -313,7 +324,8 @@ npm start
 ```
 
 She's written in TypeScript: `npm start` compiles her into `out/` first. `npm run typecheck` checks the types, and on a
-Mac `npm run dist:mac` builds `dist/mac-arm64/Capri.app` (signed ad hoc, for your own machine).
+Mac `npm run dist:mac` builds `dist/mac-arm64/Capri.app` (signed ad hoc, for your own machine), plus the Apple silicon
+and Intel zips her updates are made of.
 
 Keep that terminal open while she runs. The window tricks (sitting on your windows, possessing them, jealousy, showing
 Claude's answer when you're elsewhere) are Windows-only, and her menu only offers what works where she runs. On Linux
@@ -533,6 +545,16 @@ To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/captur
 over Capri's window, without touching the real one, `/debug/type` types in her chat, `/debug/menu` lists her menu and
 can click an item of it).
 `npm run dist` builds the Windows installer in `dist/`.
+
+Releasing is done by [release-please](https://github.com/googleapis/release-please). Merge pull requests into `main`
+with Conventional Commit titles (`feat: …`, `fix: …`). release-please keeps a release PR open that bumps `version` in
+`package.json` and writes `CHANGELOG.md`. Merging it tags `vX.Y.Z` and creates a draft release.
+`.github/workflows/release.yml` then builds Windows and macOS, attaches the files her updater reads (`latest.yml`,
+`latest-mac.yml`, the installer, the zips) and publishes the release, and installed copies pick it up. The repo needs
+*Settings › Actions › General › Allow GitHub Actions to create and approve pull requests* turned on. The feed is the
+repo in `package.json` › `build.publish`. To test an update without publishing,
+build two versions, serve the newer one's `dist/` folder over HTTP, and start the older packaged app with
+`CAPRI_UPDATE_FEED=http://127.0.0.1:<port>/`. `CAPRI_DISABLE_AUTO_UPDATE=1` turns updates off.
 
 ## Credits and rights
 
