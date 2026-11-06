@@ -1096,8 +1096,10 @@ export class Chat {
   personal() {
     const { userName, persona, memories = [] } = this.brain.custom || {};
     // small models mix the user up with the assistant she watches: said plainly
-    const watched = this.brain.watching ? (this.brain.assistant === 'claude' ? 'Claude' : ASSISTANT_NAMES[this.brain.assistant]) : '';
-    const notThem = watched ? ` Never call them "${watched}", that's their coding assistant.` : '';
+    const watched = this.brain.watching ? this.watchedIds().map((id) => (id === 'claude' ? 'Claude' : ASSISTANT_NAMES[id])) : [];
+    const notThem = watched.length
+      ? ` Never call them ${watched.map((name) => `"${name}"`).join(' or ')}, that's their coding assistant${watched.length > 1 ? 's' : ''}.`
+      : '';
     return [
       userName ? `The user's name is ${userName}: call them that now and then.${notThem}` : notThem && `You don't know the user's name.${notThem}`,
       persona ? `How the user wants you to be, in their own words (follow it, while staying Capri): ${persona}` : '',
@@ -1133,15 +1135,23 @@ export class Chat {
     ].join('\n');
   }
 
+  // the coding assistants she watches, the one she talks about first
+  watchedIds(): string[] {
+    return [...(this.brain.watched || [this.brain.assistant])];
+  }
+
   // Who she is, how she talks, and what's going on right now.
   persona() {
-    const assistant = ASSISTANT_NAMES[this.brain.assistant] || 'Claude Code';
+    const ids = this.watchedIds();
+    const names = ids.map((id) => ASSISTANT_NAMES[id] || 'Claude Code');
+    const several = names.length > 1;
+    const assistant = several ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
     const watching = this.brain.watching; // else Claude Code isn't part of her life here
     const lang = IN_LANGUAGE[this.brain.lang] || IN_LANGUAGE.en;
     return [
       `You are Capri, the personality construct from Project Capricorn (Cyberpunk: Edgerunners, season 2): dozens of minds fused into one digital ghost, so now and then you speak as "we"${lang.we ? ` (${lang.we})` : ''}.`,
       watching
-        ? `You live on the user's desktop as a small glitchy figure and keep an eye on ${assistant}, their AI coding assistant, for them. Only talk about ${assistant} when the user asks about it or about their work.`
+        ? `You live on the user's desktop as a small glitchy figure and keep an eye on ${assistant}, their AI coding assistant${several ? 's' : ''}, for them. Only talk about ${several ? 'them' : assistant} when the user asks about ${several ? 'them' : 'it'} or about their work.`
         : 'You live on the user\'s desktop as a small glitchy figure and keep them company.',
       `Right now it's ${new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date())}, the user's time.`,
       'You love the satellite that crosses the night sky and dream of reaching it, but bring it up only once in a while, never in every answer. Talk about what the user talks about.',
@@ -1161,7 +1171,7 @@ export class Chat {
       ...(this.agent
         ? ['Under the hood you are Claude Code, working in the user\'s project: really do what they ask with your tools, as carefully as ever. Only your final answer is in character: it shows in a small speech bubble, so sum up what you did in those few sentences.']
         : this.powers()),
-      ...(watching ? [`If the user asks what ${assistant} is doing, here is all you know (never make anything up): ${this.brain.context()}`] : []),
+      ...(watching ? [`If the user asks what ${several ? 'they are' : `${assistant} is`} doing, here is all you know (never make anything up): ${this.brain.context()}`] : []),
       // how she feels right now, last but for her language: small models follow the end of it best
       ...[this.bond?.moodLine()].filter(Boolean),
       lang.last,

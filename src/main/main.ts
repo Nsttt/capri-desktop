@@ -21,8 +21,9 @@ import * as launch from './launch';
 import * as files from './files';
 import { createUpdater } from './updater';
 import type { UpdateState } from './updater';
-import { ASSISTANTS, assistant } from './assistants';
-const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
+import { ASSISTANTS, assistant, watchList, primary, toggleWatch } from './assistants';
+// the one her guide and chat name (Claude Code, Codex or Antigravity); she may watch others too
+const activeAssistant = () => assistant(primary(config.load()));
 const activeHooks = () => activeAssistant().hooks;
 import demoSteps from '../../scripts/demo-sequence';
 
@@ -287,7 +288,7 @@ function resolveLang(setting) {
 // What the overlay gets: `lang` is the resolved one, `langSetting` what the user picked.
 function rendererConfig() {
   const { apiKeys, ...cfg } = config.load(); // the keys stay here: the overlay only learns which ones are set
-  return { ...cfg, volumeLevels: VOLUME_LEVELS, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, lang: resolveLang(cfg.lang), langSetting: cfg.lang, floorGap: overlayArea().gap };
+  return { ...cfg, volumeLevels: VOLUME_LEVELS, keys: Object.keys(apiKeys || {}), assistant: activeAssistant().id, watch: watchList(cfg), lang: resolveLang(cfg.lang), langSetting: cfg.lang, floorGap: overlayArea().gap };
 }
 
 function updateConfig(patch) {
@@ -305,8 +306,8 @@ function updateConfig(patch) {
 function rebuildTray() {
   if (!tray) return;
   const cfg = config.load();
-  const hookState = activeHooks().status();
   const watched = activeAssistant();
+  const watching = cfg.claude ? watchList(cfg) : [];
   const lang = resolveLang(cfg.lang);
   const labels = MAC ? { ...TRAY[lang], ...TRAY_MAC[lang] } : TRAY[lang];
   const t = Object.fromEntries(Object.entries(labels).map(([key, value]) =>
@@ -456,21 +457,23 @@ function rebuildTray() {
         label, type: 'radio', checked: cfg.rest === rest, click: () => updateConfig({ rest }),
       })),
     },
-    // the coding assistant she watches (a new one: she says hello and offers to plug herself in), or none
+    // the coding assistants she watches, as many as you like (a new one: she says hello and offers
+    // to plug herself in), or none
     {
       label: t.watch,
       submenu: [
         ...Object.entries(ASSISTANTS).map(([id, { name }]) => ({
           label: name,
-          type: 'radio',
-          checked: cfg.claude && watched.id === id,
-          click: () => {
-            const other = watched.id !== id;
-            updateConfig({ claude: true, assistant: id, ...(other && { linked: false, welcomed: false }) });
-            if (other) sendCommand('assistantChanged');
+          type: 'checkbox',
+          checked: watching.includes(id),
+          click: (item) => {
+            const { patch, hello } = toggleWatch(config.load(), id, item.checked);
+            updateConfig(patch);
+            if (hello) sendCommand('assistantChanged');
           },
         })),
-        { label: t.watchNone, type: 'radio', checked: !cfg.claude, click: () => updateConfig({ claude: false }) },
+        { type: 'separator' },
+        { label: t.watchNone, type: 'checkbox', checked: !cfg.claude, click: () => updateConfig({ claude: false }) },
       ],
     },
     {
@@ -513,14 +516,15 @@ function rebuildTray() {
       click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
     }] : []),
     updateMenu(t, cfg),
-    // her hooks, while she watches Claude Code
-    ...(cfg.claude ? [
-      { type: 'separator' },
-      hookState.installed
-        ? { label: t.hooksOn, enabled: false }
-        : { label: t.hooksOff, click: () => runHooks('install') },
-      ...(hookState.installed ? [{ label: t.hooksRemove, click: () => runHooks('uninstall') }] : []),
-    ] : []),
+    // her hooks, for each one she watches
+    ...(watching.length ? [{ type: 'separator' }] : []),
+    ...watching.flatMap((id) => {
+      const { name, hooks } = ASSISTANTS[id];
+      const named = (label) => label.replaceAll('Claude Code', name);
+      return hooks.status().installed
+        ? [{ label: named(labels.hooksOn), enabled: false }, { label: named(labels.hooksRemove), click: () => runHooks('uninstall', { id }) }]
+        : [{ label: named(labels.hooksOff), click: () => runHooks('install', { id }) }];
+    }),
     { type: 'separator' },
     ...(updater?.state().status === 'ready' ? [{ label: t.updateRestart((updater.state() as { version: string }).version), click: () => updater.install() }] : []),
     { label: t.quit, click: () => app.quit() },
@@ -591,13 +595,15 @@ function loginItemOptions() {
 }
 
 // From the tray, she says how it went; from her welcome panel (quiet), the panel does.
-function runHooks(action, { quiet = false } = {}) {
+function runHooks(action, { quiet = false, id = null } = {}) {
   let outcome;
+  const which = ASSISTANTS[id] ? id : activeAssistant().id;
+  const { hooks } = ASSISTANTS[which];
   try {
-    const result = action === 'install' ? activeHooks().install() : activeHooks().uninstall();
-    outcome = { action, ok: true, file: result.file };
+    const result = action === 'install' ? hooks.install() : hooks.uninstall();
+    outcome = { action, assistant: which, ok: true, file: result.file };
   } catch (err) {
-    outcome = { action, ok: false, error: err.message };
+    outcome = { action, assistant: which, ok: false, error: err.message };
   }
   if (!quiet) sendCommand('hooks', outcome);
   rebuildTray();
@@ -1130,7 +1136,10 @@ function main() {
   if (MAC) app.dock?.hide();
 
   app.whenReady().then(() => {
-    if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });
+    // 'auto' settled once, and the one she watched before she could watch several, as her list
+    const cfg = config.load();
+    if (!ASSISTANTS[cfg.assistant]) config.save({ assistant: activeAssistant().id });
+    if (!Array.isArray(cfg.watch)) config.save({ watch: watchList(config.load()) });
     serveProtocol();
     registerIpc();
     createOverlay();

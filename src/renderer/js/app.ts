@@ -100,7 +100,7 @@ async function boot() {
   capri.setScale(config.scale);
 
   const mission = new Mission();
-  const brain = new Brain({ capri, panel, voice, host, mission, lang: config.lang, assistant: config.assistant });
+  const brain = new Brain({ capri, panel, voice, host, mission, lang: config.lang, assistant: config.assistant, watch: config.watch });
 
   // Click-through everywhere except on her body, the panel and her biochip.
   let interactive = false;
@@ -446,7 +446,7 @@ async function boot() {
     console.error('[capri] reminder', err);
     reminders.snooze(r.id, 60 * 1000);
   });
-  // the first Claude Code event that ever reaches her: so you know it worked
+  // the first event of the assistant she just plugged into: so you know it worked
   brain.linked = config.linked;
   brain.watching = config.claude !== false;
   brain.onLinked = () => {
@@ -638,20 +638,27 @@ async function boot() {
     capri.restOn = cfg.rest || 'corner';
     applyMotion(cfg.motion);
     applyTheme(cfg.theme);
-    if ((cfg.claude === false && brain.watching) || cfg.assistant !== brain.assistant) {
+    // the sessions of an assistant she no longer watches (or all of them: she watches none)
+    const still = new Set(cfg.claude === false ? [] : [cfg.assistant, ...(cfg.watch || [])]);
+    const dropped = [...brain.sessions.values()].filter((s) => !still.has(s.assistant));
+    if (dropped.length || (cfg.claude === false && brain.watching) || cfg.assistant !== brain.assistant) {
       guide.answer(null);
       panel.hide();
       capri.stopPointing();
-      brain.replyFor = null;
+      if (dropped.includes(brain.replyFor)) brain.replyFor = null;
       brain.linked = cfg.linked;
-      // no longer watching Claude Code: whatever it was in the middle of is no business of hers
-      brain.sessions.clear();
-      panel.setTicker(null);
-      if (capri.mode === 'work' || capri.mode === 'alert') capri.setMode('idle');
+      // no longer watching it: whatever it was in the middle of is no business of hers
+      for (const s of dropped) brain.sessions.delete(s.id);
+      const busy = brain.busySessions;
+      if (!busy.length) panel.setTicker(null);
+      if (capri.mode === 'work' || capri.mode === 'alert') {
+        capri.setMode(!busy.length ? 'idle' : busy.some((s) => s.waiting) ? 'alert' : 'work');
+      }
     }
     brain.watching = cfg.claude !== false;
     brain.custom = mine(cfg);
     brain.assistant = cfg.assistant;
+    brain.watch = cfg.watch || [];
     panel.labels = linesFor(cfg.lang, cfg.assistant);
     if (cfg.scale !== capri.scale) capri.setScale(cfg.scale);
     if (cfg.lang !== brain.lang) {
@@ -722,7 +729,7 @@ async function boot() {
         else guide.answer(cmd.id);
         break;
       }
-      case 'assistantChanged': // Claude Code, Codex or Antigravity, picked in her menu
+      case 'assistantChanged': // Claude Code, Codex or Antigravity, newly ticked in her menu
         guide.welcome();
         break;
       case 'welcome': // "How does it work?" in her menu
@@ -768,10 +775,12 @@ async function boot() {
         if (capri.stance === 'peek') await capri.unpeek();
         if (!capri.gaze({ big: true })) setTimeout(() => capri.gaze({ big: true }), 1500);
         break;
-      case 'hooks':
-        if (cmd.ok) panel.say({ kind: 'info', line: cmd.action === 'install' ? t.hooksOk : t.hooksRemoved, hold: 6000 });
+      case 'hooks': { // in the name of the one whose hooks they are (her menu has one entry each)
+        const named = cmd.assistant ? brain.tFor({ assistant: cmd.assistant }) : t;
+        if (cmd.ok) panel.say({ kind: 'info', line: cmd.action === 'install' ? named.hooksOk : named.hooksRemoved, hold: 6000 });
         else panel.say({ kind: 'error', line: fmt(t.hooksFail, { error: cmd.error }), hold: 9000 });
         break;
+      }
       case 'update': // a new version of her (updater.ts), or what "Check for updates" found
         if (cmd.status === 'error') panel.say({ kind: 'error', line: fmt(t.update.fail, cmd), hold: 9000 });
         else if (t.update[cmd.status]) panel.say({ kind: 'info', line: fmt(t.update[cmd.status], cmd), hold: cmd.status === 'latest' ? 5000 : 12000 });
