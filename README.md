@@ -315,9 +315,16 @@ npm start
 She's written in TypeScript: `npm start` compiles her into `out/` first. `npm run typecheck` checks the types, and on a
 Mac `npm run dist:mac` builds `dist/mac-arm64/Capri.app` (signed ad hoc, for your own machine).
 
-Keep that terminal open while she runs. Not tested on macOS or Linux yet: she should start, but the window tricks
-(sitting on your windows, possessing them, showing Claude's answer when you're elsewhere) are Windows-only, and on Linux
+Keep that terminal open while she runs. The window tricks (sitting on your windows, possessing them, jealousy, showing
+Claude's answer when you're elsewhere) are Windows-only, and her menu only offers what works where she runs. On Linux
 the transparent overlay works best on X11 (Wayland can struggle with click-through windows).
+
+**On a Mac** she lives in the menu bar (no Dock icon), follows you across Spaces and over fullscreen apps, and finds
+`claude` and `ollama` even when opened from Finder. Her shortcut is ⌃⌥C. In her chat she answers about your battery,
+disk, memory and IP, sets timers, opens your desktop files and folders, plays music on YouTube and opens websites; opening
+apps, the media keys and the system settings are Windows-only for now. *Look at my screen* and screenshots need the
+Screen Recording permission: the first time, she opens System Settings › Privacy & Security › Screen Recording for you;
+tick Capri, then restart her.
 
 ### Hook her up to Claude Code by hand
 
