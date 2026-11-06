@@ -1039,6 +1039,8 @@ function main() {
   }
   app.on('second-instance', () => sendCommand('status'));
   if (process.platform === 'win32') app.setAppUserModelId('capri.desktop');
+  // skipTaskbar does nothing on macOS: she lives in the menu bar (her tray), not the Dock
+  if (process.platform === 'darwin') app.dock?.hide();
 
   app.whenReady().then(() => {
     if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });
