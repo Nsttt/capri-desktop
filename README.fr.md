@@ -323,11 +323,14 @@ s'endort. Tu peux juste la laisser là.
 Il faut [Node.js](https://nodejs.org) 20 ou plus.
 
 ```bash
-git clone https://github.com/mochiiwuff/capri-desktop.git
+git clone https://github.com/Nsttt/capri-desktop.git
 cd capri-desktop
 npm install
 npm start
 ```
+
+Elle est écrite en TypeScript : `npm start` la compile d'abord dans `out/`. `npm run typecheck` vérifie les types, et
+sur Mac `npm run dist:mac` construit `dist/mac-arm64/Capri.app` (signée ad hoc, pour ta propre machine).
 
 Garde ce terminal ouvert tant qu'elle tourne. Pas encore testé sur macOS ni Linux : elle devrait démarrer, mais les tours
 avec les fenêtres (s'asseoir dessus, les posséder, t'afficher la réponse de Claude quand tu es ailleurs) ne marchent que
@@ -460,7 +463,7 @@ Le but : qu'on ait l'impression qu'elle sort de l'anime, pas d'un widget.
 
 - **Cel animation** : le corps est redessiné 12 fois par seconde (« on twos ») comme un anime,
   24 pendant les téléportations. Chaque dessin a un léger *boil* (le tremblement du trait redessiné à la main).
-- **Image par image, pose à pose** : rien n'est interpolé. Chaque mouvement est une feuille d'exposition (`acting.js`) :
+- **Image par image, pose à pose** : rien n'est interpolé. Chaque mouvement est une feuille d'exposition (`acting.ts`) :
   des dessins clés tenus quelques images, une anticipation dans l'autre sens, une image de smear avec des copies
   de la tête, un dépassement, des temps de pause. Son flottement au repos, c'est quatre dessins, pas une sinusoïde.
 - **Elle joue avec sa tête et sa crinière**, comme dans la série : la tête penchée, les éclats qui se hérissent
@@ -515,33 +518,33 @@ Si Windows est réglé sur « Afficher les animations : non », elle se contente
 ## Comment c'est fait
 
 ```
-hooks/capri-hook.js      lancé par Claude Code, lit l'événement sur stdin et le poste à l'app
-scripts/install-hooks.js ajoute / retire le hook dans ~/.claude/settings.json
+hooks/capri-hook.ts      lancé par Claude Code, lit l'événement sur stdin et le poste à l'app
+scripts/install-hooks.ts ajoute / retire le hook dans ~/.claude/settings.json
 tools/build-sprite.py    reconstruit le sprite depuis la découpe d'origine (Python + Pillow, seulement si tu la changes)
 tools/build-cutins.py    découpe les cut-ins et ses expressions dans des images de la série
 tools/build-intro.py     détoure les gros plans de son intro, tous de la même façon
 src/main/                Electron : fenêtre transparente plein écran, clic à travers, tray, bridge HTTP local
-  windows.js / .ps1      où sont les autres fenêtres (Windows), pour qu'elle s'assoie dessus
-  ollama.js              son chat : le modèle local via Ollama, ou un de ses modèles cloud
-  apps.js                fermer une appli que tu lui demandes de fermer (après ton clic)
+  windows.ts / .ps1      où sont les autres fenêtres (Windows), pour qu'elle s'assoie dessus
+  ollama.ts              son chat : le modèle local via Ollama, ou un de ses modèles cloud
+  apps.ts                fermer une appli que tu lui demandes de fermer (après ton clic)
 src/renderer/js/
-  sprite.js              shader WebGL : tête, crinière, position assise, smears, images rémanentes, couleurs, glitch
-  acting.js              les feuilles d'exposition : chaque mouvement, dessin par dessin
-  capri.js               le personnage : postures, téléportation, assise, bords d'écran, chute, lancée, autres écrans, sommeil
-  fx.js                  éclats, colonnes de lumière, éclairs, glyphes, lignes de vitesse, ondes de choc, le satellite et la lumière rouge, les fenêtres possédées, les cut-ins, son intro
-  panel.js               le panneau « transmission », ses expressions et le ticker
-  guide.js               son guide : les tutos, aller jusqu'aux choses et les montrer du doigt
-  brain.js               traduit les événements Claude en répliques et en actions
-  mission.js             le journal de mission du jour, pour son rapport
-  chat.js                lui parler : la conversation, qui elle est, ses réponses qui arrivent
-  reminders.js           les rappels : les lire dans ton message, les garder, quand ils tombent
-  bond.js                son lien avec toi, qui grandit, et sa jalousie des autres IA
-  look.js                elle regarde ton écran : la permission, le scan, ce que son IA en dit
-  pc.js                  ton PC comme elle le sent : processeur, batterie, réseau, clés USB, jeux
-  files.js               chercher tes fichiers (l'index de recherche de Windows), les captures d'écran
-  lines.js               ce qu'elle dit (FR / EN / ES / PT / RU)
-  chip.js                son masque : quand elle dort, et en bas à gauche quand tu la ranges
-  voice.js               les sons
+  sprite.ts              shader WebGL : tête, crinière, position assise, smears, images rémanentes, couleurs, glitch
+  acting.ts              les feuilles d'exposition : chaque mouvement, dessin par dessin
+  capri.ts               le personnage : postures, téléportation, assise, bords d'écran, chute, lancée, autres écrans, sommeil
+  fx.ts                  éclats, colonnes de lumière, éclairs, glyphes, lignes de vitesse, ondes de choc, le satellite et la lumière rouge, les fenêtres possédées, les cut-ins, son intro
+  panel.ts               le panneau « transmission », ses expressions et le ticker
+  guide.ts               son guide : les tutos, aller jusqu'aux choses et les montrer du doigt
+  brain.ts               traduit les événements Claude en répliques et en actions
+  mission.ts             le journal de mission du jour, pour son rapport
+  chat.ts                lui parler : la conversation, qui elle est, ses réponses qui arrivent
+  reminders.ts           les rappels : les lire dans ton message, les garder, quand ils tombent
+  bond.ts                son lien avec toi, qui grandit, et sa jalousie des autres IA
+  look.ts                elle regarde ton écran : la permission, le scan, ce que son IA en dit
+  pc.ts                  ton PC comme elle le sent : processeur, batterie, réseau, clés USB, jeux
+  files.ts               chercher tes fichiers (l'index de recherche de Windows), les captures d'écran
+  lines.ts               ce qu'elle dit (FR / EN / ES / PT / RU)
+  chip.ts                son masque : quand elle dort, et en bas à gauche quand tu la ranges
+  voice.ts               les sons
 ```
 
 Pour bosser dessus : `npm run dev` active des routes de debug sur le bridge (`/debug/capture` enregistre une image de la fenêtre dans `captures/`,

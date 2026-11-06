@@ -306,11 +306,14 @@ asleep. You can just leave her there.
 You need [Node.js](https://nodejs.org) 20 or newer.
 
 ```bash
-git clone https://github.com/mochiiwuff/capri-desktop.git
+git clone https://github.com/Nsttt/capri-desktop.git
 cd capri-desktop
 npm install
 npm start
 ```
+
+She's written in TypeScript: `npm start` compiles her into `out/` first. `npm run typecheck` checks the types, and on a
+Mac `npm run dist:mac` builds `dist/mac-arm64/Capri.app` (signed ad hoc, for your own machine).
 
 Keep that terminal open while she runs. Not tested on macOS or Linux yet: she should start, but the window tricks
 (sitting on your windows, possessing them, showing Claude's answer when you're elsewhere) are Windows-only, and on Linux
@@ -436,7 +439,7 @@ The goal: she should feel like she stepped out of the anime, not like a widget.
 
 - **Cel animation**: her body is redrawn 12 times a second ("on twos") like anime, 24 during teleports.
   Every drawing has a slight *boil* (the wobble of a line redrawn by hand).
-- **Frame by frame, pose to pose**: nothing is tweened. Each move is an exposure sheet (`acting.js`):
+- **Frame by frame, pose to pose**: nothing is tweened. Each move is an exposure sheet (`acting.ts`):
   key drawings held for a few frames, an anticipation the other way, a smear frame with multiples of
   the head, an overshoot, holds. Her idle float is four drawings, not a sine wave.
 - **She acts with her head and her mane**, like in the show: the cocked head, the shards bristling or
@@ -489,33 +492,33 @@ If Windows is set to "Show animations: off", she sticks to fades.
 ## How it's built
 
 ```
-hooks/capri-hook.js      run by Claude Code, reads the event on stdin and posts it to the app
-scripts/install-hooks.js adds / removes the hook in ~/.claude/settings.json
+hooks/capri-hook.ts      run by Claude Code, reads the event on stdin and posts it to the app
+scripts/install-hooks.ts adds / removes the hook in ~/.claude/settings.json
 tools/build-sprite.py    rebuilds the sprite from the original cut-out (Python + Pillow, only if you change it)
 tools/build-cutins.py    cuts the cut-ins and her faces out of frames of the show
 tools/build-intro.py     cuts her intro's close-ups out of their background, all the same way
 src/main/                Electron: full-screen transparent click-through window, tray, local HTTP bridge
-  windows.js / .ps1      where the other windows are (Windows only), so she can sit on them
-  ollama.js              her chat: the local model through Ollama, or one of its cloud models
-  apps.js                closing an app you asked her to close (after your click)
+  windows.ts / .ps1      where the other windows are (Windows only), so she can sit on them
+  ollama.ts              her chat: the local model through Ollama, or one of its cloud models
+  apps.ts                closing an app you asked her to close (after your click)
 src/renderer/js/
-  sprite.js              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
-  acting.js              the exposure sheets: every move, drawing by drawing
-  capri.js               the character: stances, teleport, sitting, peeking, falling, thrown, other screens, sleep
-  fx.js                  shards, light columns, bolts, glyphs, speed lines, shockwaves, the satellite and the red light, possessed windows, the cut-ins, her intro
-  panel.js               the "transmission" panel, her faces, and the ticker
-  guide.js               her guide: the tutorials, going to things and pointing at them
-  brain.js               turns Claude events into lines and actions
-  mission.js             today's mission log, for her report card
-  chat.js                talking to her: the conversation, who she is, her answers coming in
-  reminders.js           reminders: reading them off your message, keeping them, when they come due
-  bond.js                how close she is to you, growing over time, and her jealousy of other AIs
-  look.js                she looks at your screen: asking first, the scan, what her AI says about it
-  pc.js                  your PC as she feels it: the processor, the battery, the network, USB sticks, games
-  files.js               finding your files (Windows search index), screenshots
-  lines.js               what she says (FR / EN / ES / PT / RU)
-  chip.js                her mask: while she sleeps, and bottom left when you put her away
-  voice.js               the sounds
+  sprite.ts              WebGL shader: head tilt, mane flare, sitting, smears, afterimages, colors, glitch
+  acting.ts              the exposure sheets: every move, drawing by drawing
+  capri.ts               the character: stances, teleport, sitting, peeking, falling, thrown, other screens, sleep
+  fx.ts                  shards, light columns, bolts, glyphs, speed lines, shockwaves, the satellite and the red light, possessed windows, the cut-ins, her intro
+  panel.ts               the "transmission" panel, her faces, and the ticker
+  guide.ts               her guide: the tutorials, going to things and pointing at them
+  brain.ts               turns Claude events into lines and actions
+  mission.ts             today's mission log, for her report card
+  chat.ts                talking to her: the conversation, who she is, her answers coming in
+  reminders.ts           reminders: reading them off your message, keeping them, when they come due
+  bond.ts                how close she is to you, growing over time, and her jealousy of other AIs
+  look.ts                she looks at your screen: asking first, the scan, what her AI says about it
+  pc.ts                  your PC as she feels it: the processor, the battery, the network, USB sticks, games
+  files.ts               finding your files (Windows search index), screenshots
+  lines.ts               what she says (FR / EN / ES / PT / RU)
+  chip.ts                her mask: while she sleeps, and bottom left when you put her away
+  voice.ts               the sounds
 ```
 
 To hack on it: `npm run dev` turns on debug routes on the bridge (`/debug/capture` saves a frame of the window to `captures/`,
