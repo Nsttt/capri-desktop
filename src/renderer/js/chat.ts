@@ -483,7 +483,7 @@ export class Chat {
       return;
     }
     const snap = await this.host.lookSnap();
-    if (!snap.ok) return say(fmt(tl.failed, { error: snap.error }));
+    if (!snap.ok) return say(snap.code === 'screen' ? tl.noScreen : fmt(tl.failed, { error: snap.error }));
     this.look.effect();
     const res = await this.host.lookSay({
       id: snap.id,
@@ -540,7 +540,7 @@ export class Chat {
       const then = THEN_FOLDER.test(text) ? 'folder' : THEN_OPEN.test(text) ? 'open' : null;
       if (query || exts.length) return { kind: 'files', query, exts, then };
     }
-    const media = MEDIA_ASK.find(([, re]) => re.test(text))?.[0];
+    const media = this.onWindows && MEDIA_ASK.find(([, re]) => re.test(text))?.[0]; // the media keys: Windows only
     if (media && (count <= 5 || MUSIC_WORD.test(text))) return { kind: 'media', action: media };
     const song = SPOTIFY_ASK.exec(text)?.[1];
     if (song) return { kind: 'music', song };
@@ -564,6 +564,15 @@ export class Chat {
   // Something to do to your PC itself (system.js), read off your message: { kind: 'pc', what, ... }
   askedPc(text, count) {
     const pc = (what, more = {}) => ({ kind: 'pc', what, ...more });
+    if (!this.onWindows) {
+      // off Windows (system.js): a timer, and what's left (battery, disk, memory, IP), nothing else
+      if (TIMER_ASK.test(text)) {
+        const ms = duration(text);
+        if (ms >= 1000) return pc('timer', { ms });
+      }
+      const info = count <= 12 && INFO_ASK.find(([, re]) => re.test(text))?.[0];
+      return info && (QUESTION.test(text) || count <= 3) ? pc('info', { info }) : null;
+    }
     const power = POWER_ASK.find(([, re]) => re.test(text))?.[0];
     if (power === 'cancel') return pc('power', { power });
     if (power && (PC_WORD.test(text) || (['lock', 'sleep'].includes(power) && count <= 4))) {
@@ -782,6 +791,7 @@ export class Chat {
       await new Promise((r) => setTimeout(r, 180));
       const shot = await this.host.screenshot();
       document.documentElement.style.visibility = '';
+      if (shot?.error === 'screen') return { line: this.brain.t.look.noScreen, face: 'aside' }; // macOS's permission
       this.voice.play('tick');
       return shot ? { line: fmt(t.shot, { name: shot.name }), face: 'smug', files: [shot] } : null;
     }
@@ -1012,10 +1022,17 @@ export class Chat {
     this.listApps();
   }
 
-  // What she can do on the PC when you ask (Windows), and nothing else.
+  // On Windows she can reach into the PC itself (apps, games, the media keys, its settings…); on a Mac
+  // or Linux, only what goes through the browser, your desktop and your folders.
+  get onWindows() {
+    return this.host.platform === 'win32';
+  }
+
+  // What she can do on the PC when you ask, and nothing else.
   powers() {
-    const lines = [
-      'Only when the user asks you to open an app, a game, a file or folder on their desktop, or a folder like Downloads, to play music, to control the music playing, or to open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: ARTIST - SONG]] (it plays on YouTube; if they did not say which song, pick one that fits), [[media: ACTION]] (ACTION: pause, play, next, previous, volup, voldown or mute), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. Any other time, write no tag at all: there are no other tags.',
+    const lines = [this.onWindows
+      ? 'Only when the user asks you to open an app, a game, a file or folder on their desktop, or a folder like Downloads, to play music, to control the music playing, or to open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: ARTIST - SONG]] (it plays on YouTube; if they did not say which song, pick one that fits), [[media: ACTION]] (ACTION: pause, play, next, previous, volup, voldown or mute), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. Any other time, write no tag at all: there are no other tags.'
+      : 'Only when the user asks you to open a file or folder on their desktop, or a folder like Downloads, to play music, or to open a website: say in a few words that you will, and end your answer with one tag: [[open: NAME]], [[music: ARTIST - SONG]] (it plays on YouTube; if they did not say which song, pick one that fits), or [[site: ADDRESS]]. Some of these get a button to confirm, so never say it is already done. You can\'t open their apps or games or control the music already playing on this computer: if asked, say so plainly, in character. Any other time, write no tag at all: there are no other tags.',
     ];
     if (this.apps.length) {
       const open = this.apps.map(({ name, label }) => (label && label !== name ? `${name} (${label})` : name)).join(', ');

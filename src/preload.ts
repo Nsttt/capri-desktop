@@ -7,6 +7,7 @@ const on = (channel) => (fn) => {
 };
 
 contextBridge.exposeInMainWorld('host', {
+  platform: process.platform, // 'win32', 'darwin', 'linux': what she can do, and how she says it
   onClaudeEvent: on('claude:event'),
   onCommand: on('capri:command'),
   onConfig: on('capri:config'),

@@ -170,6 +170,9 @@ function knownFolder(text) {
 }
 
 function openKnown(id) {
+  // no Explorer here: Finder on your home folder, and the Trash
+  if (!WIN && id === 'explorer') return shell.openPath(app.getPath('home'));
+  if (!WIN && id === 'recycle') return shell.openPath(path.join(app.getPath('home'), process.platform === 'darwin' ? '.Trash' : '.local/share/Trash/files'));
   if (id === 'explorer') return spawn('explorer.exe', [], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
   if (id === 'recycle') return spawn('explorer.exe', ['shell:RecycleBinFolder'], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
   return shell.openPath(app.getPath(id));

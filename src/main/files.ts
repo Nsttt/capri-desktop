@@ -6,6 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { app, shell, desktopCapturer, screen } from 'electron';
 import { powershell } from './apps';
+import { canCaptureScreen } from './platform';
 
 const LIMIT = 8;
 const found = new Set(); // what a search showed you: the only paths she opens from here
@@ -22,6 +23,7 @@ const CODE = ['js', 'mjs', 'cjs', 'ts', 'tsx', 'jsx', 'json', 'map', 'lock', 'ym
 // Windows Search: names first (every word in the name, of one of `exts` if any), then what's in
 // documents (not code). null if the index can't be asked.
 async function indexed(terms, exts) {
+  if (process.platform !== 'win32') return null; // no Windows Search here: the walk
   const safe = terms.map((t) => t.replace(/[^\p{L}\p{N}.]/gu, '')).filter(Boolean);
   const types = exts.map((e) => e.replace(/[^a-z0-9]/gi, '')).filter(Boolean);
   if (!safe.length && !types.length) return [];
@@ -112,6 +114,7 @@ async function open(file, { reveal = false } = {}) {
 
 // A screenshot of the screen she's on, full size, saved in Pictures › Screenshots (made if needed).
 async function screenshot(display) {
+  if (!(await canCaptureScreen())) throw Object.assign(new Error('no Screen Recording permission'), { code: 'screen' });
   const d = display || screen.getPrimaryDisplay();
   const k = d.scaleFactor || 1;
   const size = { width: Math.round(d.bounds.width * k), height: Math.round(d.bounds.height * k) };
