@@ -18,7 +18,8 @@
     "hooks:agy:uninstall": "node scripts/install-hooks-agy.js --uninstall",
     "check:llm": "node scripts/check-llm.js",
     "test:hooks": "node --test tests/hooks.test.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac dir"
   },
   "keywords": [
     "claude-code",
@@ -57,6 +58,16 @@
     "win": {
       "target": "nsis",
       "icon": "assets/icons/capri.ico"
+    },
+    "mac": {
+      "target": "dir",
+      "icon": "assets/icons/capri-mac.png",
+      "category": "public.app-category.entertainment",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "nsis": {
       "oneClick": true,
