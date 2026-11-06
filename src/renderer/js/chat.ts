@@ -8,6 +8,7 @@
 import { pick, fmt } from './util.js';
 import { ASSISTANT_NAMES } from './lines.js';
 import { parseReminder, parseWhen, clock } from './reminders.js';
+import { askedLoudness, stepVolume } from './loudness.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
@@ -404,6 +405,7 @@ export class Chat {
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
     this.bond?.heard(text); // "sorry": she lets it go
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
+    if (asked?.kind === 'loudness') await early; // her prompt says how loud she is: the new level, not the old
     // what she greeted you with (angry, sulking…), in the conversation before your message, so her
     // answer carries on from it (after another answer of hers: added to that one, never two in a row)
     if (this.opening) {
@@ -528,6 +530,9 @@ export class Chat {
     const memo = MEMO_ASK.exec(text)?.[1]?.trim();
     if (memo) return { kind: 'memo', text: memo };
     if (this.look && LOOK_ASK.test(text)) return { kind: 'look' };
+    // her own sounds ("baisse ta voix", "your sounds at 30 %"), before your PC's volume gets it
+    const loudness = askedLoudness(text);
+    if (loudness) return { kind: 'loudness', ...loudness };
     const pc = this.askedPc(text, count);
     if (pc) return pc;
     if (SHOT_ASK.test(text)) return { kind: 'shot' };
@@ -690,6 +695,30 @@ export class Chat {
     }
   }
 
+  // Her own sounds, as you asked in her chat (loudness.js): saved like her Sound menu does it, so
+  // the menu follows and she ticks at the new level (app.js). Her line about it, under her answer.
+  async loudnessNow(asked) {
+    const t = this.t.loudness;
+    const { voice } = this;
+    const pct = (v) => Math.round(v * 100);
+    if ('mute' in asked) {
+      if (asked.mute === voice.muted) return { line: asked.mute ? t.muted : fmt(t.level, { level: pct(voice.volume) }), face: 'smug' };
+      await this.host.setConfig({ muted: asked.mute });
+      return { line: asked.mute ? t.muted : t.unmuted, face: asked.mute ? 'aside' : 'laugh' };
+    }
+    if ('step' in asked) {
+      if (voice.muted && asked.step < 0) return { line: t.muted, face: 'aside' }; // quieter than off
+      const next = stepVolume(voice.levels, voice.volume, asked.step);
+      if (next == null && !voice.muted) return { line: asked.step > 0 ? t.loudest : t.quietest, face: 'smug' };
+      const volume = next ?? voice.volume;
+      await this.host.setConfig({ volume, muted: false });
+      return { line: fmt(t.level, { level: pct(volume) }), face: 'smug' };
+    }
+    const volume = Math.min(1, Math.max(0.01, asked.level));
+    await this.host.setConfig({ volume, muted: false });
+    return { line: fmt(t.level, { level: pct(volume) }), face: 'smug' };
+  }
+
   // Your click on her button for your PC's power: done, or left alone.
   async powerNow(confirm, answer) {
     const t = this.t.pc;
@@ -747,6 +776,7 @@ export class Chat {
       this.host.setConfig({ userName: asked.name });
       return { line: fmt(this.brain.t.custom.named, { name: asked.name }), face: 'laugh' };
     }
+    if (asked.kind === 'loudness') return this.loudnessNow(asked);
     if (asked.kind === 'memo') {
       custom.memories = [...(custom.memories || []).filter((m) => m !== asked.text), asked.text].slice(-MEMORIES_MAX);
       this.host.setConfig({ memories: custom.memories });
@@ -1043,6 +1073,9 @@ export class Chat {
       const soon = this.reminders.upcoming.slice(0, 6);
       if (soon.length) lines.push(`Reminders you're keeping for them: ${soon.map((r) => `${clock(r.at, this.brain.lang)}${r.text ? ` (${r.text})` : ''}`).join('; ')}.`);
     }
+    // her own sounds (loudness.js): she knows how loud she is, and that she can change it
+    const level = `${Math.round(this.voice.volume * 100)}%`;
+    lines.push(`Your own sounds (your blips and chimes, not the user's PC volume) are ${this.voice.muted ? `muted (set to ${level} when on)` : `at ${level}`}. When the user asks you to be quieter or louder, to mute or unmute yourself, or to set your sounds to a level, your system does it from their message as they send it (a line under your answer shows it): just confirm it in a few words, in character, never say you can't. They can also change it in your menu, under Sound. Asked how loud you are, say it.`);
     lines.push('Your system also searches the user\'s files when they ask you to find one, searches the web when they ask, takes screenshots, and starts Roblox games by name: what it did shows under your answer, so never make up file names or results.');
     lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');
     return lines;

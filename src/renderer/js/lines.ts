@@ -101,6 +101,7 @@ export const LINES = {
       folderOpened: 'Voilà son dossier : {name}.',
       folders: { explorer: 'L’explorateur', recycle: 'La corbeille', downloads: 'Tes téléchargements', desktop: 'Ton bureau', documents: 'Tes documents', pictures: 'Tes images', music: 'Ta musique', videos: 'Tes vidéos' },
       media: { pause: 'Pause.', play: 'Ça repart.', next: 'Suivante.', previous: 'Précédente.', volup: 'Plus fort.', voldown: 'Moins fort.', mute: 'J’ai appuyé sur muet.' },
+      loudness: { level: 'Mes sons à {level} %.', muted: 'Mes sons sont coupés. Demande-moi et je les remets.', unmuted: 'Mes sons sont de retour.', loudest: 'Je ne vais pas plus fort que ça.', quietest: 'Plus bas, c’est muet : dis « coupe tes sons ».' },
       // ton PC lui-même (system.js) : réglages, ce qui reste, son, capture, fenêtres, thème, alimentation
       pc: {
         settings: 'Je t’ouvre les paramètres : {page}.',
@@ -484,6 +485,7 @@ export const LINES = {
       folderOpened: 'Here’s its folder: {name}.',
       folders: { explorer: 'File Explorer', recycle: 'The recycle bin', downloads: 'Your downloads', desktop: 'Your desktop', documents: 'Your documents', pictures: 'Your pictures', music: 'Your music', videos: 'Your videos' },
       media: { pause: 'Paused.', play: 'Playing.', next: 'Next one.', previous: 'Previous one.', volup: 'Louder.', voldown: 'Quieter.', mute: 'Hit mute.' },
+      loudness: { level: 'My sounds at {level}%.', muted: 'My sounds are off. Ask and they’re back.', unmuted: 'My sounds are back on.', loudest: 'That’s as loud as I go.', quietest: 'Any lower is silent: say “mute your sounds”.' },
       pc: {
         settings: 'Opening your settings: {page}.',
         pages: { bluetooth: 'Bluetooth', sound: 'Sound', wifi: 'Wi-Fi', network: 'Network', update: 'Windows Update', display: 'Display', notifications: 'Notifications', mouse: 'Mouse', power: 'Power', battery: 'Battery', background: 'Background', storage: 'Storage' },
@@ -863,6 +865,7 @@ export const LINES = {
       folderOpened: 'Aquí está su carpeta: {name}.',
       folders: { explorer: 'El explorador', recycle: 'La papelera', downloads: 'Tus descargas', desktop: 'Tu escritorio', documents: 'Tus documentos', pictures: 'Tus imágenes', music: 'Tu música', videos: 'Tus vídeos' },
       media: { pause: 'Pausa.', play: 'Sigue sonando.', next: 'Siguiente.', previous: 'Anterior.', volup: 'Más alto.', voldown: 'Más bajo.', mute: 'Le di a silenciar.' },
+      loudness: { level: 'Mis sonidos al {level} %.', muted: 'Mis sonidos están apagados. Pídemelo y vuelven.', unmuted: 'Mis sonidos están de vuelta.', loudest: 'Más fuerte no puedo.', quietest: 'Más bajo es silencio: di «apaga tus sonidos».' },
       pc: {
         settings: 'Te abro la configuración: {page}.',
         pages: { bluetooth: 'Bluetooth', sound: 'Sonido', wifi: 'Wi-Fi', network: 'Red', update: 'Windows Update', display: 'Pantalla', notifications: 'Notificaciones', mouse: 'Ratón', power: 'Energía', battery: 'Batería', background: 'Fondo', storage: 'Almacenamiento' },
@@ -1241,6 +1244,7 @@ export const LINES = {
       folderOpened: 'Aqui tá a pasta: {name}.',
       folders: { explorer: 'O explorador de arquivos', recycle: 'A lixeira', downloads: 'Seus downloads', desktop: 'Sua área de trabalho', documents: 'Seus documentos', pictures: 'Suas imagens', music: 'Suas músicas', videos: 'Seus vídeos' },
       media: { pause: 'Pausado.', play: 'Tocando.', next: 'Próxima.', previous: 'Anterior.', volup: 'Mais alto.', voldown: 'Mais baixo.', mute: 'Apertei o mudo.' },
+      loudness: { level: 'Meus sons em {level}%.', muted: 'Meus sons estão desligados. É só pedir que eles voltam.', unmuted: 'Meus sons estão de volta.', loudest: 'Mais alto que isso eu não vou.', quietest: 'Mais baixo é silêncio: diz “desliga seus sons”.' },
       pc: {
         settings: 'Abrindo as configurações: {page}.',
         pages: { bluetooth: 'Bluetooth', sound: 'Som', wifi: 'Wi-Fi', network: 'Rede', update: 'Windows Update', display: 'Tela', notifications: 'Notificações', mouse: 'Mouse', power: 'Energia', battery: 'Bateria', background: 'Plano de fundo', storage: 'Armazenamento' },
@@ -1619,6 +1623,7 @@ export const LINES = {
       folderOpened: 'Вот его папка: {name}.',
       folders: { explorer: 'Проводник', recycle: 'Корзина', downloads: 'Твои загрузки', desktop: 'Твой рабочий стол', documents: 'Твои документы', pictures: 'Твои изображения', music: 'Твоя музыка', videos: 'Твои видео' },
       media: { pause: 'Пауза.', play: 'Играет.', next: 'Следующий.', previous: 'Предыдущий.', volup: 'Громче.', voldown: 'Тише.', mute: 'Нажала «без звука».' },
+      loudness: { level: 'Мои звуки на {level} %.', muted: 'Мои звуки выключены. Попроси — и они вернутся.', unmuted: 'Мои звуки снова включены.', loudest: 'Громче я не умею.', quietest: 'Тише — только тишина: скажи «выключи свои звуки».' },
       pc: {
         settings: 'Открываю настройки: {page}.',
         pages: { bluetooth: 'Bluetooth', sound: 'Звук', wifi: 'Wi-Fi', network: 'Сеть', update: 'Центр обновления', display: 'Дисплей', notifications: 'Уведомления', mouse: 'Мышь', power: 'Питание', battery: 'Батарея', background: 'Фон', storage: 'Память' },
