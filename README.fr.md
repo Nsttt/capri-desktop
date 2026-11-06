@@ -332,10 +332,18 @@ npm start
 Elle est écrite en TypeScript : `npm start` la compile d'abord dans `out/`. `npm run typecheck` vérifie les types, et
 sur Mac `npm run dist:mac` construit `dist/mac-arm64/Capri.app` (signée ad hoc, pour ta propre machine).
 
-Garde ce terminal ouvert tant qu'elle tourne. Pas encore testé sur macOS ni Linux : elle devrait démarrer, mais les tours
-avec les fenêtres (s'asseoir dessus, les posséder, t'afficher la réponse de Claude quand tu es ailleurs) ne marchent que
-sous Windows, et sous Linux le calque transparent marche mieux sous X11 (Wayland a du mal avec les fenêtres qui laissent
-passer les clics).
+Garde ce terminal ouvert tant qu'elle tourne. Les tours avec les fenêtres (s'asseoir dessus, les posséder, la jalousie,
+t'afficher la réponse de Claude quand tu es ailleurs) ne marchent que sous Windows, et son menu ne propose que ce qui
+marche là où elle tourne. Sous Linux le calque transparent marche mieux sous X11 (Wayland a du mal avec les fenêtres qui
+laissent passer les clics).
+
+**Sur Mac** elle vit dans la barre des menus (pas d'icône dans le Dock), te suit d'un Space à l'autre et par-dessus les
+apps en plein écran, et trouve `claude` et `ollama` même ouverte depuis le Finder. Son raccourci est ⌃⌥C. Dans son chat,
+elle te dit ta batterie, ton disque, ta mémoire et ton IP, lance des minuteurs, ouvre les fichiers et dossiers de ton
+bureau, met de la musique sur YouTube et ouvre des sites ; ouvrir des apps, les touches multimédia et les réglages du
+système ne marchent que sous Windows pour l'instant. *Regarde mon écran* et les captures demandent l'autorisation
+Enregistrement de l'écran : la première fois, elle t'ouvre Réglages Système › Confidentialité et sécurité ›
+Enregistrement de l'écran ; coche Capri, puis relance-la.
 
 ### La brancher sur Claude Code à la main
 

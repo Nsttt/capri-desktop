@@ -114,10 +114,20 @@ const TRAY = {
   },
 };
 
+// On a Mac, what the menu says differently: it opens at login (not with Windows), she sits on the
+// Dock (not the taskbar), and her animations follow macOS's Reduce Motion.
+const TRAY_MAC: Record<keyof typeof TRAY, Partial<(typeof TRAY)['en']>> = {
+  fr: { startup: 'Ouvrir à la connexion', restTaskbar: 'Assise sur le Dock', motionAuto: 'Comme macOS' },
+  en: { startup: 'Open at login', restTaskbar: 'Sitting on the Dock', motionAuto: 'Like macOS' },
+  es: { startup: 'Abrir al iniciar sesión', restTaskbar: 'Sentada en el Dock', motionAuto: 'Como macOS' },
+  pt: { startup: 'Abrir ao iniciar sessão', restTaskbar: 'Sentada no Dock', motionAuto: 'Como o macOS' },
+  ru: { startup: 'Открывать при входе', restTaskbar: 'Сидит на Dock', motionAuto: 'Как в macOS' },
+};
+
 const LANGS = Object.keys(TRAY);
 
 // one language's labels (each has the same keys as English)
 type TrayLabels = (typeof TRAY)['en'];
 
-export { TRAY, LANGS };
+export { TRAY, TRAY_MAC, LANGS };
 export type { TrayLabels };

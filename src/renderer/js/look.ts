@@ -146,7 +146,10 @@ export class Look {
       }
       const snap = await this.host.lookSnap();
       if (!snap.ok) {
-        if (manual) this.panel.say({ kind: 'info', face: 'aside', line: fmt(t.failed, { error: snap.error }), hold: 6000 });
+        // macOS without Screen Recording: said even when she looked on her own (System Settings opened)
+        if (snap.code === 'screen') this.panel.say({ kind: 'info', face: 'aside', line: t.noScreen, hold: 10000 });
+        else if (manual) this.panel.say({ kind: 'info', face: 'aside', line: fmt(t.failed, { error: snap.error }), hold: 6000 });
+        if (snap.code === 'screen' && this.auto) this.host.setConfig({ watchScreen: false });
         return;
       }
       this.lastFg = this.capri.windows.fg;

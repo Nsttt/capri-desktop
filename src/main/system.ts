@@ -1,15 +1,15 @@
 // What her chat can do to your PC itself (Windows): open one of its settings, say what's left of
 // its battery's charge, disk and memory and what its IP is, set its sound, start a snip, get its
 // windows out of the way or side by side, switch it dark or light, and lock it, put it to sleep,
-// shut it down or restart it (those only after your click in her chat).
+// shut it down or restart it (those only after your click in her chat). On a Mac, only what's left
+// (battery, disk, memory, IP) for now.
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { execFile } from 'node:child_process';
 import { shell, screen } from 'electron';
 import * as apps from './apps';
-
-const WIN = process.platform === 'win32';
+import { WIN, MAC } from './platform';
 
 // her words for them -> Windows' own settings pages (ms-settings:)
 const SETTINGS = {
@@ -28,21 +28,41 @@ async function settings(page) {
   return true;
 }
 
-// Its battery (none on a desktop), the disk Windows is on, the memory, and the PC's address on
+const output = (file, args) => new Promise<string>((resolve) => {
+  execFile(file, args, { timeout: 5000 }, (err, out) => resolve(err ? '' : String(out)));
+});
+
+// macOS: `pmset -g batt`, "-InternalBattery-0 (id=…)	85%; charging; 1:02 remaining present: true"
+// on a laptop, no InternalBattery line on a desktop Mac. null when pmset doesn't answer.
+async function macBattery() {
+  return parseBattery(await output('pmset', ['-g', 'batt']));
+}
+
+function parseBattery(out: string) {
+  if (!out) return null;
+  const m = /InternalBattery[^\n]*?(\d+)%;\s*([^;]+);/.exec(out);
+  if (!m) return { none: true };
+  // charging, charged, finishing charge, AC attached: on the charger (as Windows' "full" counts)
+  return { percent: Number(m[1]), charging: m[2].trim().toLowerCase() !== 'discharging' };
+}
+
+// Its battery (none on a desktop), the disk the system is on, the memory, and the PC's address on
 // your network (not the internet's idea of it: that would mean asking a website).
 async function info(what) {
   if (what === 'battery') {
-    const out = WIN && await apps.powershell('Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining, BatteryStatus | ConvertTo-Json -Compress').catch(() => '');
+    if (MAC) return macBattery();
+    if (!WIN) return null; // can't tell: better than "no battery" on a laptop
+    const out = await apps.powershell('Get-CimInstance Win32_Battery | Select-Object -First 1 EstimatedChargeRemaining, BatteryStatus | ConvertTo-Json -Compress').catch(() => '');
     if (!out) return { none: true };
     const b = JSON.parse(out);
     // BatteryStatus: 1 on battery; 2 on the charger; 3 full; 6 to 9 charging
     return { percent: b.EstimatedChargeRemaining, charging: [2, 3, 6, 7, 8, 9].includes(b.BatteryStatus) };
   }
   if (what === 'disk') {
-    const drive = `${process.env.SystemDrive || 'C:'}\\`;
+    const drive = WIN ? `${process.env.SystemDrive || 'C:'}\\` : '/';
     try {
       const s = fs.statfsSync(drive);
-      return { drive: drive.slice(0, 2), free: s.bavail * s.bsize, total: s.blocks * s.bsize };
+      return { drive: WIN ? drive.slice(0, 2) : drive, free: s.bavail * s.bsize, total: s.blocks * s.bsize };
     } catch {
       return null;
     }
@@ -184,4 +204,4 @@ function act(req: Record<string, any> = {}, { display }: { display?: any } = {})
   }
 }
 
-export { act, SETTINGS };
+export { act, SETTINGS, parseBattery };

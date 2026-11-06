@@ -327,6 +327,7 @@ export const LINES = {
       noVision: '{model} ne sait pas lire les images. gemma3 sait, sur ton PC, comme Gemini en ligne : change dans mon menu › Modèle IA.',
       noAI: 'Il me faut une IA pour regarder : clic droit sur moi › Modèle IA.',
       failed: 'Je n’ai pas réussi à regarder : {error}',
+      noScreen: 'Pour regarder, il me faut l’autorisation Enregistrement de l’écran : Réglages Système › Confidentialité et sécurité › Enregistrement de l’écran, coche Capri, puis relance-moi.',
     },
     // les rappels (reminders.js) : « rappelle-moi dans 20 min de sortir le linge »
     remind: {
@@ -708,6 +709,7 @@ export const LINES = {
       noVision: '{model} can’t read pictures. gemma3 can, on your PC, and so can Gemini online: switch in my menu › AI model.',
       noAI: 'I need an AI to look: right-click me › AI model.',
       failed: 'I couldn’t look: {error}',
+      noScreen: 'To look, I need Screen Recording permission: System Settings › Privacy & Security › Screen Recording, tick Capri, then restart me.',
     },
     // reminders (reminders.js): "remind me in 20 minutes to take out the laundry"
     remind: {
@@ -1083,6 +1085,7 @@ export const LINES = {
       noVision: '{model} no sabe leer imágenes. gemma3 sí, en tu PC, y Gemini en línea también: cámbialo en mi menú › Modelo de IA.',
       noAI: 'Necesito una IA para mirar: clic derecho sobre mí › Modelo de IA.',
       failed: 'No pude mirar: {error}',
+      noScreen: 'Para mirar necesito el permiso de Grabación de pantalla: Ajustes del Sistema › Privacidad y seguridad › Grabación de pantalla, activa Capri y reiníciame.',
     },
     // recordatorios (reminders.js): «recuérdame en 20 minutos sacar la ropa»
     remind: {
@@ -1460,6 +1463,7 @@ export const LINES = {
       noVision: '{model} não sabe ler imagens. O gemma3 sabe, no seu PC, e o Gemini online também: troca no meu menu › Modelo de IA.',
       noAI: 'Preciso de uma IA pra olhar: clique direito em mim › Modelo de IA.',
       failed: 'Não consegui olhar: {error}',
+      noScreen: 'Pra olhar, preciso da permissão de Gravação de Tela: Ajustes do Sistema › Privacidade e Segurança › Gravação de Tela, marque o Capri e me reinicie.',
     },
     // lembretes (reminders.js): "me lembra daqui a 20 minutos de tirar a roupa"
     remind: {
@@ -1839,6 +1843,7 @@ export const LINES = {
       noVision: '{model} не умеет читать картинки. gemma3 умеет, на твоём ПК, и Gemini онлайн тоже: поменяй в моём меню › ИИ-модель.',
       noAI: 'Чтобы смотреть, мне нужен ИИ: правый клик по мне › ИИ-модель.',
       failed: 'Не получилось посмотреть: {error}',
+      noScreen: 'Чтобы смотреть, мне нужно разрешение «Запись экрана»: Системные настройки › Конфиденциальность и безопасность › Запись экрана, отметь Capri и перезапусти меня.',
     },
     // напоминания (reminders.js): «напомни через 20 минут снять бельё»
     remind: {
@@ -1911,6 +1916,90 @@ export const LINES = {
     },
   },
 };
+
+// On a Mac, what she says differently: ⌃⌥C (a Mac keyboard's Control and Option, not Ctrl+Alt),
+// her icon up in the menu bar (not by the clock in the taskbar), Ollama in Applications (not the
+// Start menu), keys in the keychain (not the Windows account), and Reduce Motion.
+const MAC = {
+  fr: {
+    showcase: { chip: '⌃⌥C, et je me range là.' },
+    guide: { icon: {
+      line: 'Mon icône, c’est là-haut, dans la barre des menus.',
+      hidden: 'Si ta barre des menus est trop pleine, macOS la cache : fais plutôt un clic droit sur moi, c’est le même menu.',
+    } },
+    setup: { wakeFailedHow: 'Ouvre-le depuis ton dossier Applications, puis reparle-moi.', pasteHow: 'Je la garde sur ce Mac, chiffrée dans ton trousseau.' },
+    welcome: {
+      menu: 'Clic droit sur moi pour mon menu. ⌃⌥C pour me ranger.',
+      readyHow: 'Dès qu’il travaille, je te montre ce qu’il fait. Clic droit sur moi pour mon menu. ⌃⌥C pour me ranger.',
+    },
+    motion: { line: 'Ton Mac a « Réduire les animations » activé, alors je bouge à peine.' },
+  },
+  en: {
+    showcase: { chip: '⌃⌥C, and I tuck myself away here.' },
+    guide: { icon: {
+      line: 'My icon is up there, in the menu bar.',
+      hidden: 'When the menu bar is too full, macOS hides it: right-click me instead, same menu.',
+    } },
+    setup: { wakeFailedHow: 'Open it from your Applications folder, then talk to me again.', pasteHow: 'I keep it on this Mac, encrypted in your keychain.' },
+    welcome: {
+      menu: 'Right-click me for my menu. ⌃⌥C tucks me away.',
+      readyHow: 'Whenever it works, I’ll show you what it’s doing. Right-click me for my menu. ⌃⌥C tucks me away.',
+    },
+    motion: { line: 'Your Mac has Reduce Motion on, so I’m barely moving.' },
+  },
+  es: {
+    showcase: { chip: '⌃⌥C y me guardo aquí.' },
+    guide: { icon: {
+      line: 'Mi icono está ahí arriba, en la barra de menús.',
+      hidden: 'Si tu barra de menús está muy llena, macOS lo esconde: haz clic derecho sobre mí, es el mismo menú.',
+    } },
+    setup: { wakeFailedHow: 'Ábrelo desde tu carpeta Aplicaciones y vuelve a hablarme.', pasteHow: 'La guardo en este Mac, cifrada en tu llavero.' },
+    welcome: {
+      menu: 'Clic derecho sobre mí para abrir mi menú. ⌃⌥C me guarda.',
+      readyHow: 'Cuando trabaje, te enseño lo que hace. Clic derecho sobre mí para mi menú. ⌃⌥C me guarda.',
+    },
+    motion: { line: 'Tu Mac tiene activado «Reducir movimiento», así que apenas me muevo.' },
+  },
+  pt: {
+    showcase: { chip: '⌃⌥C e eu me guardo aqui.' },
+    guide: { icon: {
+      line: 'Meu ícone está lá em cima, na barra de menus.',
+      hidden: 'Quando a barra de menus fica cheia demais, o macOS esconde ele: clique direito em mim, é o mesmo menu.',
+    } },
+    setup: { wakeFailedHow: 'Abra ele pela pasta Aplicativos e fale comigo de novo.', pasteHow: 'Eu guardo ela neste Mac, criptografada nas Chaves do macOS.' },
+    welcome: {
+      menu: 'Clique com o botão direito em mim para abrir meu menu. ⌃⌥C me guarda.',
+      readyHow: 'Quando ele trabalhar, eu te mostro o que ele tá fazendo. Botão direito em mim para o menu. ⌃⌥C me guarda.',
+    },
+    motion: { line: 'Seu Mac está com “Reduzir movimento” ligado, então eu quase não me mexo.' },
+  },
+  ru: {
+    showcase: { chip: '⌃⌥C — и я прячусь сюда.' },
+    guide: { icon: {
+      line: 'Моя иконка вон там, наверху, в строке меню.',
+      hidden: 'Если строка меню переполнена, macOS её прячет: тогда правый клик по мне — то же меню.',
+    } },
+    setup: { wakeFailedHow: 'Открой её из папки «Программы» и снова заговори со мной.', pasteHow: 'Я храню его на этом Mac, зашифрованным в связке ключей.' },
+    welcome: {
+      menu: 'Правый клик по мне — моё меню. ⌃⌥C — спрятать меня.',
+      readyHow: 'Когда он работает, я показываю, что он делает. Правый клик по мне — моё меню. ⌃⌥C — спрятать меня.',
+    },
+    motion: { line: 'На твоём Mac включено «Уменьшение движения», поэтому я почти не двигаюсь.' },
+  },
+};
+
+// each string of `extra` over the one at the same place in `base`
+function overlay(base, extra) {
+  for (const [key, value] of Object.entries(extra)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) overlay(base[key], value);
+    else base[key] = value;
+  }
+}
+
+// once, before anyone reads them (the preload sets host before any script runs)
+if ((globalThis as any).host?.platform === 'darwin') {
+  for (const [lang, extra] of Object.entries(MAC)) overlay(LINES[lang], extra);
+}
 
 // The coding assistants she can watch besides Claude Code: the same lines with their name, their
 // hooks file, and what to do once her hooks are in.

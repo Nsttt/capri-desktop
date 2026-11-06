@@ -6,7 +6,8 @@ import { app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, 
 import { randomUUID } from 'node:crypto';
 
 import * as config from './config';
-import { TRAY, LANGS } from './labels';
+import { TRAY, TRAY_MAC, LANGS } from './labels';
+import { WIN, MAC, TRACKS_WINDOWS, fixPath, canCaptureScreen } from './platform';
 import type { TrayLabels } from './labels';
 import { createBridge } from './bridge';
 import { startWindowWatch } from './windows';
@@ -181,7 +182,7 @@ function createOverlay() {
     focusable: false,
     hasShadow: false,
     alwaysOnTop: true,
-    type: process.platform === 'win32' ? 'toolbar' : undefined,
+    type: WIN ? 'toolbar' : undefined,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
@@ -195,6 +196,9 @@ function createOverlay() {
 
   overlay.setAlwaysOnTop(true, 'screen-saver');
   overlay.setIgnoreMouseEvents(true, { forward: true });
+  // macOS keeps a window on the Space it opened on: she follows you to the others, and over
+  // fullscreen apps. skipTransformProcessType: without it, Electron brings the Dock icon back.
+  if (MAC) overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   overlay.loadURL('capri://app/src/renderer/index.html');
   // always shown: put away, she's still there as her biochip in the corner. Sized again first:
   // Windows keeps a new window inside the work area, and resting on the taskbar it covers it too.
@@ -253,7 +257,7 @@ const DEMO_TERMINAL = `<body style="margin:0;background:#14101c;color:#8f8aa3;fo
 function demoWindow(open) {
   demoWin?.destroy();
   demoWin = null;
-  if (!open || process.platform !== 'win32') return false;
+  if (!open || !TRACKS_WINDOWS) return false;
   const b = overlay.getBounds();
   demoWin = new BrowserWindow({
     x: Math.round(b.x + b.width * 0.5 - 310), y: Math.round(b.y + b.height * 0.42), width: 620, height: 300,
@@ -299,7 +303,9 @@ function rebuildTray() {
   const cfg = config.load();
   const hookState = activeHooks().status();
   const watched = activeAssistant();
-  const t = Object.fromEntries(Object.entries(TRAY[resolveLang(cfg.lang)]).map(([key, value]) =>
+  const lang = resolveLang(cfg.lang);
+  const labels = MAC ? { ...TRAY[lang], ...TRAY_MAC[lang] } : TRAY[lang];
+  const t = Object.fromEntries(Object.entries(labels).map(([key, value]) =>
     [key, typeof value === 'string' && watched.id !== 'claude' ? value.replaceAll('Claude Code', watched.name) : value])) as TrayLabels;
 
   const screens = displays();
@@ -411,12 +417,15 @@ function rebuildTray() {
       ],
     },
     { label: t.wander, type: 'checkbox', checked: cfg.wander, click: (item) => updateConfig({ wander: item.checked }) },
-    { label: t.possess, type: 'checkbox', checked: cfg.possess, click: (item) => updateConfig({ possess: item.checked }) },
-    { label: t.jealous, type: 'checkbox', checked: cfg.jealous !== false, click: (item) => updateConfig({ jealous: item.checked }) },
-    {
-      label: t.closePages, type: 'checkbox', checked: cfg.closePages !== false, enabled: cfg.jealous !== false,
-      click: (item) => updateConfig({ closePages: item.checked }),
-    },
+    // these three need the window tracking (windows.ps1): not offered where there's none
+    ...(TRACKS_WINDOWS ? [
+      { label: t.possess, type: 'checkbox', checked: cfg.possess, click: (item) => updateConfig({ possess: item.checked }) },
+      { label: t.jealous, type: 'checkbox', checked: cfg.jealous !== false, click: (item) => updateConfig({ jealous: item.checked }) },
+      {
+        label: t.closePages, type: 'checkbox', checked: cfg.closePages !== false, enabled: cfg.jealous !== false,
+        click: (item) => updateConfig({ closePages: item.checked }),
+      },
+    ] : []),
     { label: t.pcReact, type: 'checkbox', checked: cfg.pcReact !== false, click: (item) => updateConfig({ pcReact: item.checked }) },
     {
       // she asks first (what she'll send where), then turns it on herself
@@ -463,8 +472,9 @@ function rebuildTray() {
     },
     {
       label: t.display,
-      // only read when she starts: she restarts in the mode picked
-      submenu: [['auto', t.displayAuto], ['gl', t.displayGl], ['software', t.displaySoftware]].map(([render, label]) => ({
+      // only read when she starts: she restarts in the mode picked. OpenGL is the fix for Windows'
+      // black backgrounds (ANGLE off Direct3D); macOS draws through Metal and never had that problem.
+      submenu: [['auto', t.displayAuto], ...(MAC ? [] : [['gl', t.displayGl]]), ['software', t.displaySoftware]].map(([render, label]) => ({
         label, type: 'radio', checked: cfg.render === render,
         click: () => {
           if (cfg.render === render) return;
@@ -480,12 +490,13 @@ function rebuildTray() {
         label, type: 'radio', checked: cfg.lang === lang, click: () => updateConfig({ lang }),
       })),
     },
-    {
+    // Electron has no login items on Linux
+    ...(WIN || MAC ? [{
       label: t.startup,
       type: 'checkbox',
       checked: app.getLoginItemSettings(loginItemOptions()).openAtLogin,
       click: (item) => app.setLoginItemSettings({ ...loginItemOptions(), openAtLogin: item.checked }),
-    },
+    }] : []),
     // her hooks, while she watches Claude Code
     ...(cfg.claude ? [
       { type: 'separator' },
@@ -611,6 +622,7 @@ async function chatWithFallback(cfg, messages, send, signal, streamed) {
 // for her AI to look at, never written anywhere. 1280 px wide at most: enough to read, light to send.
 const snaps = new Map(); // id -> the picture, base64 JPEG
 async function snapScreen() {
+  if (!(await canCaptureScreen())) throw Object.assign(new Error('no Screen Recording permission'), { code: 'screen' });
   const d = targetDisplay();
   const k = d.scaleFactor || 1;
   const fit = Math.min(1, 1280 / (d.bounds.width * k));
@@ -674,7 +686,9 @@ async function pickClaudeFolder() {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromPath(path.join(ROOT, 'assets', 'icons', 'tray.png'));
+  const file = path.join(ROOT, 'assets', 'icons', 'tray.png');
+  // the menu bar is 22 points high: the 32 px picture as a retina one, 16 points, not 32
+  const icon = MAC ? nativeImage.createFromBuffer(fs.readFileSync(file), { scaleFactor: 2 }) : nativeImage.createFromPath(file);
   tray = new Tray(icon);
   tray.setToolTip('Capri');
   tray.on('click', () => sendCommand('status'));
@@ -762,7 +776,7 @@ function registerIpc() {
       setTimeout(() => snaps.delete(id), 120000);
       return { ok: true, id };
     } catch (err) {
-      return { ok: false, error: err.message };
+      return { ok: false, error: err.message, code: err.code || null };
     }
   });
   ipcMain.handle('look:say', (_e, request) => sayAboutSnap(request || {}));
@@ -852,7 +866,7 @@ function registerIpc() {
   // your files (files.js): a search, opening what it found, a screenshot, a search on the web
   ipcMain.handle('files:search', (_e, query) => files.search(query).catch(() => []));
   ipcMain.handle('files:open', (_e, { file, reveal }) => files.open(String(file), { reveal: Boolean(reveal) }).then(() => true, () => false));
-  ipcMain.handle('files:screenshot', () => files.screenshot(targetDisplay()).catch(() => null));
+  ipcMain.handle('files:screenshot', () => files.screenshot(targetDisplay()).catch((err) => (err.code === 'screen' ? { error: 'screen' } : null)));
   ipcMain.handle('web:search', (_e, query) => {
     const q = String(query || '').trim().slice(0, 300);
     if (!q) return false;
@@ -879,14 +893,17 @@ function registerIpc() {
     await clipboard.write([new ClipboardItem({ 'image/png': png })]);
     return true;
   });
-  // her guide: where her tray icon is (it lives in the taskbar, off the overlay, hence overlay
-  // coordinates past its edge), and the corner by the clock in case Windows hid it behind the ^
+  // her guide: where her tray icon is (it lives in the taskbar, or the menu bar on a Mac, off the
+  // overlay, hence overlay coordinates past its edge), and the corner by the clock in case Windows
+  // hid it behind the ^ (macOS: the right end of the menu bar)
   ipcMain.handle('guide:tray', () => {
     const o = overlay.getBounds();
     const d = targetDisplay().bounds;
     const b = tray?.getBounds();
     const icon = b && b.width > 0 ? { x: b.x - o.x, y: b.y - o.y, w: b.width, h: b.height } : null;
-    const corner = { x: d.x + d.width - 150 - o.x, y: d.y + d.height - 44 - o.y, w: 140, h: 40 };
+    const corner = MAC
+      ? { x: d.x + d.width - 150 - o.x, y: d.y - o.y, w: 140, h: 24 }
+      : { x: d.x + d.width - 150 - o.x, y: d.y + d.height - 44 - o.y, w: 140, h: 40 };
     return { icon, corner };
   });
   // her guide: Claude Code's folder (~/.claude) in Explorer, its settings file selected
@@ -1029,15 +1046,16 @@ function applyRender() {
 }
 
 function main() {
+  fixPath(); // before anything looks for `claude`, `ollama` or `node`
   applyRender();
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
   }
   app.on('second-instance', () => sendCommand('status'));
-  if (process.platform === 'win32') app.setAppUserModelId('capri.desktop');
+  if (WIN) app.setAppUserModelId('capri.desktop');
   // skipTaskbar does nothing on macOS: she lives in the menu bar (her tray), not the Dock
-  if (process.platform === 'darwin') app.dock?.hide();
+  if (MAC) app.dock?.hide();
 
   app.whenReady().then(() => {
     if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });

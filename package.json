@@ -20,6 +20,7 @@
     "hooks:agy:uninstall": "npm run build && node out/scripts/install-hooks-agy.js --uninstall",
     "check:llm": "npm run build && node out/scripts/check-llm.js",
     "test:hooks": "npm run build && node --test out/tests/hooks.test.js",
+    "test": "npm run build && node --test out/tests/hooks.test.js out/tests/platform.test.js",
     "dist": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac dir"
   },
