@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Nsttt/capri-desktop/compare/v0.6.0...v0.7.0) (2026-11-06)
+
+
+### Features
+
+* **watch:** let Capri watch Claude Code, Codex and Antigravity at once ([#5](https://github.com/Nsttt/capri-desktop/issues/5)) ([fb173be](https://github.com/Nsttt/capri-desktop/commit/fb173bee284291cb6432315bc42ec81c41a01c57))
+
 ## [0.6.0](https://github.com/Nsttt/capri-desktop/compare/v0.5.1...v0.6.0) (2026-11-06)
 
 
