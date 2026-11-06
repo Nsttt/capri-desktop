@@ -257,3 +257,87 @@ test('hooks left at an old path are not installed, and reinstalling replaces the
     }
   }
 });
+
+// T3 Code and the like swap Claude Code and Codex all the time: ticked together in her Watch menu,
+// she follows all of them at once, and each session is named after its own assistant.
+test('watching several assistants: every ticked one is followed, each in its own name', async (t) => {
+  globalThis.matchMedia = () => ({ matches: false });
+  t.after(() => { delete globalThis.matchMedia; });
+  const { Brain } = await import(moduleUrl(path.join(__dirname, '../src/renderer/js/brain.js')));
+  const noop = () => {};
+  const stub = (obj) => new Proxy(obj, { get: (o, key) => (key in o ? o[key] : noop) });
+  const said = [];
+  const rivals = [];
+  const brain = new Brain({
+    capri: stub({ windows: { fg: null, wins: [] }, mode: 'idle', setMode(mode) { this.mode = mode; } }),
+    panel: stub({ say(msg) { said.push(msg); }, setTicker() {} }), voice: { play: noop }, host: { cursor: async () => null },
+    lang: 'en', assistant: 'claude', watch: ['claude', 'codex'],
+  });
+  t.after(() => clearInterval(brain.thinkTimer));
+  brain.onRival = (key) => rivals.push(key);
+  let linked = 0;
+  brain.linked = false;
+  brain.onLinked = () => { linked++; };
+
+  // Codex first: followed, but it's Claude Code she was waiting to see linked
+  await brain.handle({ hook_event_name: 'UserPromptSubmit', session_id: 'codex:a', cwd: '/one', prompt: 'go' });
+  assert.equal(linked, 0);
+  await brain.handle({ hook_event_name: 'UserPromptSubmit', session_id: 'b', cwd: '/two', prompt: 'go' });
+  assert.equal(linked, 1);
+  assert.equal(brain.sessions.get('codex:a').assistant, 'codex');
+  assert.equal(brain.sessions.get('b').assistant, 'claude');
+  assert.equal(brain.busySessions.length, 2);
+
+  // what she says about a session names its own assistant
+  await brain.handle({ hook_event_name: 'StopFailure', session_id: 'codex:a', error: 'boom' });
+  assert.match(said.at(-1).line, /Codex/);
+  assert.doesNotMatch(said.at(-1).line, /Claude/);
+  await brain.handle({ hook_event_name: 'StopFailure', session_id: 'b', error: 'boom' });
+  assert.match(said.at(-1).line, /Claude/);
+
+  // one not ticked is still a rival, not followed
+  await brain.handle({ hook_event_name: 'UserPromptSubmit', session_id: 'agy:c', cwd: '/three', prompt: 'go' });
+  assert.equal(brain.sessions.has('agy:c'), false);
+  assert.deepEqual(rivals, ['gemini']);
+
+  // her chat hears about both
+  await brain.handle({ hook_event_name: 'PreToolUse', session_id: 'codex:a', tool_name: 'Bash', tool_input: { command: 'ls' } });
+  assert.match(brain.context(), /Codex is working on one/);
+  assert.match(brain.context(), /Claude is idle/);
+  assert.equal(brain.names, 'Claude and Codex');
+  const { Chat } = await import(moduleUrl(path.join(__dirname, '../src/renderer/js/chat.js')));
+  const chat = Object.create(Chat.prototype);
+  chat.brain = brain;
+  chat.powers = () => [];
+  assert.match(chat.persona(), /keep an eye on Claude Code and Codex, their AI coding assistants/);
+});
+
+test('her Watch menu: tick several, untick one, untick them all', () => {
+  const { watchList, primary, toggleWatch } = require('../src/main/assistants');
+  // a config from before she could watch several: the one picked
+  assert.deepEqual(watchList({ assistant: 'codex', watch: null }), ['codex']);
+  let cfg: any = { claude: true, assistant: 'claude', watch: ['claude'], linked: true, welcomed: true };
+  const apply = (id, on) => {
+    const { patch, hello } = toggleWatch(cfg, id, on);
+    cfg = { ...cfg, ...patch };
+    return hello;
+  };
+  // a new one: she says hello and offers to plug herself into it, and keeps watching the first
+  assert.equal(apply('codex', true), true);
+  assert.deepEqual(watchList(cfg), ['claude', 'codex']);
+  assert.equal(primary(cfg), 'codex');
+  assert.equal(cfg.linked, false);
+  assert.equal(apply('agy', true), true);
+  assert.deepEqual(watchList(cfg), ['claude', 'codex', 'agy']);
+  // unticking the one she talks about: the first one left takes over, no hello
+  assert.equal(apply('agy', false), false);
+  assert.deepEqual(watchList(cfg), ['claude', 'codex']);
+  assert.equal(primary(cfg), 'claude');
+  assert.equal(apply('claude', false), false);
+  assert.equal(apply('codex', false), false);
+  assert.equal(cfg.claude, false);
+  // ticked again after "nothing": just that one, and no hello if it's the one she knows
+  assert.equal(apply('codex', true), false);
+  assert.equal(cfg.claude, true);
+  assert.deepEqual(watchList(cfg), ['codex']);
+});

@@ -259,7 +259,8 @@ export class Jealousy {
 
   // The first of these AIs (keys) that's a rival of hers, or null.
   rivalOf(keys) {
-    const own = OWN[this.brain.assistant] || [];
+    // the ones she watches are hers, not rivals
+    const own = [...(this.brain.watched || [this.brain.assistant])].flatMap((id) => OWN[id] || []);
     return (keys || []).find((k) => RIVALS[k] && !own.includes(k)) || null;
   }
 

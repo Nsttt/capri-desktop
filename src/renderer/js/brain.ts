@@ -14,6 +14,20 @@ const THINK_AFTER = 15000;
 const THINK_SAY = 40000;
 const THINK_LONG = 120000;
 
+// Whose event it is: Codex's and Antigravity's hooks mark their sessions, Claude Code's don't.
+function sourceOf(evt) {
+  return /^(codex|agy):/.exec(String(evt?.session_id || ''))?.[1] || 'claude';
+}
+
+// an assistant, as she calls it
+function nameOf(assistant) {
+  return assistant === 'claude' ? 'Claude' : ASSISTANT_NAMES[assistant] || 'Claude';
+}
+
+function andList(items) {
+  return items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items[0] || '';
+}
+
 export class Brain {
   declare capri: any;
   declare panel: any;
@@ -22,6 +36,7 @@ export class Brain {
   declare mission: any;
   declare lang: string;
   declare assistant: string;
+  declare watch: string[];
   declare custom: { userName?: string; persona?: string; myLines?: string[]; memories?: string[] };
   declare bond: any; // set by app.ts (bond.ts)
   declare onRival: ((key: string) => void) | undefined; // set by app.ts
@@ -41,18 +56,19 @@ export class Brain {
       gazed: boolean;
   };
 
-  constructor({ capri, panel, voice, host, mission, lang = 'fr', assistant = 'claude' }) {
+  constructor({ capri, panel, voice, host, mission, lang = 'fr', assistant = 'claude', watch = [] }) {
     this.capri = capri;
     this.panel = panel;
     this.voice = voice;
     this.host = host;
     this.mission = mission; // today's log, for her report card (mission.js)
     this.lang = lang;
-    this.assistant = assistant; // 'claude', 'codex' or 'agy': whose events she follows
+    this.assistant = assistant; // 'claude', 'codex' or 'agy': the one her guide, chat and idle lines name
+    this.watch = watch;         // all she follows (her Watch menu), e.g. ["claude", "codex"]
     this.custom = {};       // what you made her (custom.js): { userName, persona, myLines, memories }
     this.sessions = new Map();
     this.replyFor = null;    // the session whose answer she's holding up for you
-    this.linked = true;      // has a Claude Code event ever reached her (app.js sets it from the config)
+    this.linked = true;      // has an event of `assistant` ever reached her (app.js sets it from the config)
     this.onLinked = null;
     this.onShowcase = null; // the demo's second half (app.js)
     this.onTalk = null;     // opens a chat with her (app.js, chat.js)
@@ -65,16 +81,32 @@ export class Brain {
     return linesFor(this.lang, this.assistant);
   }
 
-  // the assistant she watches, as she calls it
-  get name() {
-    return this.assistant === 'claude' ? 'Claude' : ASSISTANT_NAMES[this.assistant] || 'Claude';
+  // Her lines about a session, with the name of the assistant it belongs to: watching Claude Code
+  // and Codex at once, a Codex session is "Codex" in what she says.
+  tFor(s) {
+    return linesFor(this.lang, s?.assistant || this.assistant);
   }
 
-  session(evt) {
+  // whose events she follows: the ones ticked in her menu, always with `assistant`
+  get watched() {
+    return new Set([this.assistant, ...(this.watch || [])]);
+  }
+
+  // the assistant she watches, as she calls it
+  get name() {
+    return nameOf(this.assistant);
+  }
+
+  // all of them, in English, for her chat: "Claude, Codex and Antigravity"
+  get names() {
+    return andList([...this.watched].map(nameOf));
+  }
+
+  session(evt, assistant = this.assistant) {
     const id = evt.session_id || 'default';
     let s = this.sessions.get(id);
     if (!s) {
-      s = { id, project: this.name, taskStart: null, count: 0, files: new Set(), log: [], working: false, waiting: false };
+      s = { id, assistant, project: nameOf(assistant), taskStart: null, count: 0, files: new Set(), log: [], working: false, waiting: false };
       this.sessions.set(id, s);
     }
     if (evt.cwd) s.project = basename(evt.cwd);
@@ -102,20 +134,20 @@ export class Brain {
     }
     // the demo's second half (scripts/demo-sequence.js), not a Claude event
     if (evt.hook_event_name === 'CapriShowcase') return this.onShowcase?.();
-    // Codex's and Antigravity's hooks mark their sessions (codex:..., agy:...): only the one she watches
-    // counts. Another one at work is another AI in your life: she notices (bond.js).
-    const source = /^(codex|agy):/.exec(String(evt.session_id || ''))?.[1] || 'claude';
-    if (!evt.demo && source !== this.assistant) {
+    // Codex's and Antigravity's hooks mark their sessions (codex:..., agy:...): only the ones she
+    // watches count. Another one at work is another AI in your life: she notices (bond.js).
+    const source = sourceOf(evt);
+    if (!evt.demo && !this.watched.has(source)) {
       this.onRival?.(source === 'agy' ? 'gemini' : source);
       return undefined;
     }
     if (!this.watching && !evt.demo) return undefined; // not watching Claude Code: none of its business
-    // the first real Claude Code event that ever reaches her (the demo's don't count)
-    if (!this.linked && !evt.demo) {
+    // the first real event of the one she just plugged into (the demo's, and the others', don't count)
+    if (!this.linked && !evt.demo && source === this.assistant) {
       this.linked = true;
       this.onLinked?.();
     }
-    const s = this.session(evt);
+    const s = this.session(evt, evt.demo ? this.assistant : source);
     const name = evt.hook_event_name;
     // these three put her somewhere themselves; anything else just brings her out of hiding
     if (name === 'UserPromptSubmit' || name === 'Stop' || name === 'Notification') this.capri.wake();
@@ -144,10 +176,10 @@ export class Brain {
           this.panel.setTicker(null);
           this.capri.setMode('idle');
         }
-        return this.say('info', pick(this.t.interrupted), s, { face: 'wide', hold: 4000 });
+        return this.say('info', pick(this.tFor(s).interrupted), s, { face: 'wide', hold: 4000 });
       case 'SubagentStart': return this.onSubagent(evt, s, true);
       case 'SubagentStop': return this.onSubagent(evt, s, false);
-      case 'PreCompact': return this.say('info', pick(this.t.compact), s, { face: 'aside', hold: 4000 });
+      case 'PreCompact': return this.say('info', pick(this.tFor(s).compact), s, { face: 'aside', hold: 4000 });
       case 'SessionEnd': return this.onSessionEnd(evt, s);
       default: return undefined;
     }
@@ -155,7 +187,7 @@ export class Brain {
 
   onSessionStart(evt, s) {
     if (evt.source === 'clear' || evt.source === 'compact') return;
-    const lines = evt.source === 'resume' ? this.t.resume : this.t.hello;
+    const lines = evt.source === 'resume' ? this.tFor(s).resume : this.tFor(s).hello;
     this.voice.play('hello');
     this.capri.perform('curious', this.capri.towardCenter());
     this.say('info', fmt(pick(lines), { project: s.project }), s, { face: pick(['grin', 'look']), hold: 5000 });
@@ -168,7 +200,7 @@ export class Brain {
     this.tally(evt)?.prompt(s.project);
     this.capri.goToWork(); // perched on the window in front if she can, else her corner
     const prompt = String(evt.prompt || '').replace(/\s+/g, ' ').trim();
-    this.say('work', pick(this.t.prompt), s, { quote: prompt ? clip(prompt, 110) : '', hold: 4500 });
+    this.say('work', pick(this.tFor(s).prompt), s, { quote: prompt ? clip(prompt, 110) : '', hold: 4500 });
     this.watchThinking();
   }
 
@@ -196,7 +228,7 @@ export class Brain {
     }
     let th = this.thinking;
     if (th?.s !== s || th.since !== s.seen) th = this.thinking = { s, since: s.seen, said: 0, fidget: 0, gazed: false };
-    const t = this.t.thinking;
+    const t = this.tFor(s).thinking;
     this.panel.setTicker({ verb: t.verb, target: duration(quiet, this.lang), thinking: true });
 
     const now = performance.now();
@@ -238,7 +270,7 @@ export class Brain {
     this.panel.setTicker(action);
     if (this.panel.current?.kind === 'work') this.panel.updateLog(s.log);
     if (s.count % WORKING_EVERY === 0) {
-      this.say('work', fmt(pick(this.t.working), { count: s.count }), s, { log: s.log, hold: 4000 });
+      this.say('work', fmt(pick(this.tFor(s).working), { count: s.count }), s, { log: s.log, hold: 4000 });
     }
   }
 
@@ -246,7 +278,7 @@ export class Brain {
     const action = { ...this.describe(evt), error: true };
     s.log.push(action);
     if (evt.is_interrupt) {
-      this.say('info', pick(this.t.interrupted), s, { face: 'wide', hold: 4000 });
+      this.say('info', pick(this.tFor(s).interrupted), s, { face: 'wide', hold: 4000 });
       return;
     }
     // "Exit code 1" says nothing; the next line usually does
@@ -255,7 +287,7 @@ export class Brain {
     this.tally(evt)?.error();
     this.capri.hurt();
     this.voice.play('error');
-    this.say('error', fmt(pick(this.t.error), { tool: evt.tool_name || this.t.someTool }), s, {
+    this.say('error', fmt(pick(this.tFor(s).error), { tool: evt.tool_name || this.tFor(s).someTool }), s, {
       face: pick(['laugh', 'wide']), // a failure: she laughs at the chaos, or it caught her off guard
       log: [action, { verb: '✕', target: clip(firstLine, 70), error: true }],
       hold: 5500,
@@ -272,13 +304,13 @@ export class Brain {
       // you're on another window: she goes and points at Claude's, where the question is
       const win = this.away(s) && this.capri.windows.wins.find((w) => w.id === s.window);
       if (win && this.capri.canPoint(win)) {
-        const quote = [this.t.guide.permissionThere, evt.message].filter(Boolean).join('\n');
-        this.say('alert', pick(this.t.permission), s, { quote, hold: null });
-        s.pointedAt = await this.capri.pointAt(win, { label: this.t.guide.labels.claude });
+        const quote = [this.tFor(s).guide.permissionThere, evt.message].filter(Boolean).join('\n');
+        this.say('alert', pick(this.tFor(s).permission), s, { quote, hold: null });
+        s.pointedAt = await this.capri.pointAt(win, { label: this.tFor(s).guide.labels.claude });
         if (!s.waiting && s.pointedAt) this.capri.stopPointing(); // answered while she was on her way
         return;
       }
-      this.say('alert', pick(this.t.permission), s, { quote: evt.message || '', hold: null });
+      this.say('alert', pick(this.tFor(s).permission), s, { quote: evt.message || '', hold: null });
       // next to your pointer, even on another screen
       const near = await this.capri.toPointer(await this.host.cursor().catch(() => null));
       const toward = near?.inside ? Math.sign(near.x - this.capri.pos.x) || 1 : this.capri.towardCenter();
@@ -287,7 +319,7 @@ export class Brain {
     }
     if (type === 'idle_prompt') {
       this.voice.play('tick');
-      this.say('info', pick(this.t.waiting), s, { face: 'smug', hold: 6000 });
+      this.say('info', pick(this.tFor(s).waiting), s, { face: 'smug', hold: 6000 });
       return;
     }
     if (evt.message) this.say('info', evt.message, s, { hold: 5000 });
@@ -317,8 +349,8 @@ export class Brain {
     const reply = this.away(s) ? readable(evt.last_assistant_message || '') : '';
     const done = (extra) => {
       if (reply) this.replyFor = s;
-      if (reply) this.say('done', pick(this.t.reply), s, { ...extra, reply, hold: null });
-      else this.say('done', pick(this.t.done), s, { ...extra, quote: clip(quote, 150) });
+      if (reply) this.say('done', pick(this.tFor(s).reply), s, { ...extra, reply, hold: null });
+      else this.say('done', pick(this.tFor(s).done), s, { ...extra, quote: clip(quote, 150) });
     };
     if (!wasWorking && !s.count) {
       // a Stop with nothing before it: just say it quietly
@@ -360,12 +392,12 @@ export class Brain {
     this.capri.hurt();
     this.voice.play('error');
     const detail = evt.error || evt.message || '';
-    this.say('error', pick(this.t.crashed), s, { face: 'wide', quote: clip(String(detail), 120), hold: 9000 });
+    this.say('error', pick(this.tFor(s).crashed), s, { face: 'wide', quote: clip(String(detail), 120), hold: 9000 });
   }
 
   onSubagent(evt, s, starting) {
-    const agent = evt.agent_type || this.t.someAgent;
-    const line = fmt(pick(starting ? this.t.subagentStart : this.t.subagentStop), { agent });
+    const agent = evt.agent_type || this.tFor(s).someAgent;
+    const line = fmt(pick(starting ? this.tFor(s).subagentStart : this.tFor(s).subagentStop), { agent });
     const action = { verb: starting ? '↗' : '↘', target: line };
     s.log.push(action);
     this.panel.setTicker(action);
@@ -377,7 +409,7 @@ export class Brain {
       this.panel.setTicker(null);
       this.capri.setMode('idle');
     }
-    this.say('info', fmt(pick(this.t.bye), { project: s.project }), s, { face: 'aside', hold: 4000 });
+    this.say('info', fmt(pick(this.tFor(s).bye), { project: s.project }), s, { face: 'aside', hold: 4000 });
   }
 
   // Something to say with nothing going on: one of your lines half the time, if you wrote some, and
@@ -410,21 +442,22 @@ export class Brain {
     }
     const s = busy.sort((a, b) => b.seen - a.seen)[0];
     const time = s.taskStart ? duration(Date.now() - s.taskStart, this.lang) : '…';
-    const extra = busy.length > 1 ? ` ${fmt(this.t.sessions, { count: busy.length })}.` : '';
-    this.say('work', fmt(this.t.status, { project: s.project, time }) + extra, s, { log: s.log, hold: 6000 });
+    const extra = busy.length > 1 ? ` ${fmt(this.tFor(s).sessions, { count: busy.length })}.` : '';
+    this.say('work', fmt(this.tFor(s).status, { project: s.project, time }) + extra, s, { log: s.log, hold: 6000 });
   }
 
   // What's going on, in plain words, for her chat: so she can answer "what's Claude up to?".
   context() {
-    const assistant = this.name;
     const busy = this.busySessions.sort((a, b) => b.seen - a.seen);
-    const now = busy.length
-      ? busy.map((s) => {
+    const idle = [...this.watched].filter((id) => !busy.some((s) => s.assistant === id));
+    const now = [
+      ...busy.map((s) => {
         const time = s.taskStart ? ` for ${duration(Date.now() - s.taskStart, 'en')}` : '';
         const last = s.last ? `, last: ${s.last.verb} ${s.last.target}` : '';
-        return `${assistant} is working on ${s.project}${time} (${plural(s.count, ['action', 'actions'], 'en')} so far${last}).`;
-      }).join(' ')
-      : `${assistant} is idle.`;
+        return `${nameOf(s.assistant)} is working on ${s.project}${time} (${plural(s.count, ['action', 'actions'], 'en')} so far${last}).`;
+      }),
+      ...(idle.length ? [`${andList(idle.map(nameOf))} ${idle.length > 1 ? 'are' : 'is'} idle.`] : []),
+    ].join(' ');
     const d = this.mission?.day;
     const today = d ? ` Today: ${d.missions} tasks finished, ${d.actions} actions, ${d.files} files changed, ${d.errors} errors.` : '';
     return now + today;

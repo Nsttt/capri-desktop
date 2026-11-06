@@ -240,7 +240,7 @@ sometimes comes over to your pointer on her own. Where you two stand: at the top
 brings you a little closer. Keep at it too long and she's had enough.
 
 **And she gets jealous.** When the window in front of you is another AI (ChatGPT, Gemini, Copilot, Perplexity,
-DeepSeek, Grok, Le Chat, Character.AI, Meta AI, Codex, or Claude when she watches Codex), she notices and says so, more
+DeepSeek, Grok, Le Chat, Character.AI, Meta AI, Codex, or Claude when she doesn't watch it), she notices and says so, more
 or less nicely depending on where you two stand. If you stay on it, once she's attached, she goes and sits on its
 window, glares at you and takes it over, brows down, with a word of hers written across it. Then she sulks: click her
 and she turns her back on you (it passes, and talking it over in her chat helps). Her chat also knows which other AIs
@@ -351,16 +351,20 @@ Restart your Claude Code sessions afterwards. To remove it: `npm run hooks:unins
 
 The hooks run `async`: they never slow Claude down, and when Capri isn't running they do nothing.
 
-### Codex or Antigravity instead of Claude Code
+### Codex and Antigravity, instead of Claude Code or alongside it
 
-Right-click her › **Watch** › **Codex** or **Antigravity**. She says hi and offers to plug herself in, like she does
-for Claude Code. Then:
+Right-click her › **Watch** › tick **Codex** or **Antigravity**. She says hi and offers to plug herself in, like she
+does for Claude Code. Then:
 
 - **Codex**: restart it and trust her hooks when it asks. They go in `~/.codex/hooks.json`. Her hook for Codex needs
   [Node.js](https://nodejs.org) 20 or newer on your PATH.
 - **Antigravity**: start a new conversation. Her hooks go in `~/.gemini/config/hooks.json`.
 
-She follows one of them at a time, the one picked in her menu, and her lines, her guide and her chat use its name.
+Tick as many as you like: she follows all of them at once, which suits apps like T3 Code where you swap agents in
+the middle of the day. What she says about a session uses the name of the assistant it belongs to ("Codex stopped
+mid-flight"), and her chat knows what each one is up to. Her guide and her idle lines use the name of the one you
+ticked last. Her menu has a hooks entry for each one she watches. One you didn't tick is another AI in your life:
+she notices it, and may get jealous.
 She only watches: when Codex or Antigravity asks for approval, you still answer it there. From the command line:
 `npm run hooks:codex:install` or `npm run hooks:agy:install` (`:uninstall` to remove them), and `npm run test:hooks`
 runs the tests of both adapters. **Watch** › **Nothing, just keep me company**: she stops talking about any of them.
@@ -419,7 +423,8 @@ named like this (`.mp3`, `.wav`, `.ogg` or `.m4a`):
 
 - **Mac, Linux?** No installer yet, but you can run her from the source (see above).
 - **Phone, Android?** No, she needs a desktop.
-- **Other assistants?** Claude Code, Codex and Antigravity: her menu › **Watch**. Cursor, Windsurf and Gemini CLI: not yet.
+- **Other assistants?** Claude Code, Codex and Antigravity, one or all of them at once: her menu › **Watch**. Cursor,
+  Windsurf and Gemini CLI: not yet.
 - **Ollama?** Two ways. Claude Code running on a local model through Ollama (`ollama launch claude`): she sees it like
   any Claude Code, it's just slower, and her ticker counts the seconds while it thinks. And she can chat with you
   through Ollama herself: see "Talk to her".
